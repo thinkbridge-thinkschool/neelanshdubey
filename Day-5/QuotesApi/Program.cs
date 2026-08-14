@@ -102,6 +102,7 @@ if (!app.Environment.IsEnvironment("Testing"))
 }
 
 app.MapGet("/", () => "Quotes API is running!");
+app.MapGet("/health", () => Results.Ok("healthy"));
 
 app.MapAuthEndpoints();
 app.MapQuoteEndpoints();
