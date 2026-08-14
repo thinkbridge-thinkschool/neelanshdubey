@@ -91,7 +91,7 @@ module quotesApi 'br/public:avm/res/app/container-app:0.8.0' = {
         }
         env: [
           {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+            name: 'AppInsights__ConnectionString'
             value: monitoring.outputs.applicationInsightsConnectionString
           }
           {
