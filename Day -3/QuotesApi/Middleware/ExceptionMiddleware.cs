@@ -1,4 +1,5 @@
 using System.Text.Json;
+using QuotesApi.Models;
 
 namespace QuotesApi.Middleware;
 
@@ -20,6 +21,26 @@ public class ExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (DomainException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "A domain invariant was violated.");
+
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            context.Response.ContentType = "application/problem+json";
+
+            var problem = new
+            {
+                type = "https://httpstatuses.com/400",
+                title = "Bad Request",
+                status = 400,
+                detail = ex.Message
+            };
+
+            await context.Response.WriteAsync(
+                JsonSerializer.Serialize(problem));
         }
         catch (Exception ex)
         {
