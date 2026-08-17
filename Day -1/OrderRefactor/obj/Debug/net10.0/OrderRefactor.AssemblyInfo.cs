@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OrderRefactor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d124057625d2350c084e3b1a9a35fd6fd9155f9e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6c308437308a3165a3ba1058e4e89cdda761ea28")]
 [assembly: System.Reflection.AssemblyProductAttribute("OrderRefactor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OrderRefactor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
