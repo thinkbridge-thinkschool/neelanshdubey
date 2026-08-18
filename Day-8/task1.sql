@@ -163,15 +163,15 @@ GO
 -- =====================================================================
 -- -- AFTER: covering non-clustered index on OrderDate INCLUDE (Amount) --
 -- =====================================================================
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Orders_OrderDate_Covering' AND object_id = OBJECT_ID(N'dbo.Orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Orders_OrderDate_Include_Amount' AND object_id = OBJECT_ID(N'dbo.Orders'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IX_Orders_OrderDate_Covering ON Orders (OrderDate) INCLUDE (Amount);
+    CREATE NONCLUSTERED INDEX IX_Orders_OrderDate_Include_Amount ON Orders (OrderDate) INCLUDE (Amount);
 END
 GO
 
 -- Rerun the date-range query -- expect a single Index Seek on
--- IX_Orders_OrderDate_Covering with no Key Lookup, since OrderId, OrderDate,
--- and Amount are all present in the index leaf.
+-- IX_Orders_OrderDate_Include_Amount with no Key Lookup, since OrderId,
+-- OrderDate, and Amount are all present in the index leaf.
 SET STATISTICS IO ON;
 GO
 
@@ -184,7 +184,7 @@ GO
 -- =====================================================================
 -- Same shape of insert as 8a, but now every row has to update the clustered
 -- index AND both non-clustered indexes (IX_Orders_CustomerId,
--- IX_Orders_OrderDate_Covering). Compare STATISTICS IO / STATISTICS TIME
+-- IX_Orders_OrderDate_Include_Amount). Compare STATISTICS IO / STATISTICS TIME
 -- here against 8a to see the write-cost impact of the two extra indexes.
 SET STATISTICS IO ON;
 SET STATISTICS TIME ON;
