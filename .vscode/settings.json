@@ -1,0 +1,15 @@
+{
+  "mssql.connections": [
+    {
+      "profileName": "day8-sql",
+      "server": "localhost,1433",
+      "database": "master",
+      "authenticationType": "SqlLogin",
+      "user": "sa",
+      "password": "",
+      "savePassword": true,
+      "encrypt": "Mandatory",
+      "trustServerCertificate": true
+    }
+  ]
+}
