@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddSingleton<IAuthorizationHandler, SameOwnerAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, SameOwnerCollectionAuthorizationHandler>();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -15,6 +16,9 @@ builder.Services.AddAuthorization(options =>
         policy.RequireClaim("scope", "quotes.write"));
 
     options.AddPolicy("can-delete-own-quote", policy =>
+        policy.Requirements.Add(new SameOwnerRequirement()));
+
+    options.AddPolicy("can-manage-own-collection", policy =>
         policy.Requirements.Add(new SameOwnerRequirement()));
 });
 
@@ -33,5 +37,6 @@ app.MapGet("/", () => "Quotes API is running!");
 
 app.MapAuthEndpoints();
 app.MapQuoteEndpoints();
+app.MapCollectionEndpoints();
 
 app.Run();

@@ -32,6 +32,7 @@ public static class InfrastructureExtensions
               configuration.GetConnectionString("DefaultConnection")));
 
         services.AddScoped<IQuoteRepository, QuoteRepository>();
+        services.AddScoped<ICollectionRepository, CollectionRepository>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddTransient<IQuoteValidator, QuoteValidator>();
         services.AddSingleton<ITokenService, TokenService>();
