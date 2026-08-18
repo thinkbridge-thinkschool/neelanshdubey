@@ -1,216 +1,218 @@
--- Day 8, Task 1: Clustered vs. non-clustered indexes -- heap baseline,
--- clustered PK, then two non-clustered indexes, with read AND write cost
--- comparisons at each stage.
---
--- Connection: day8-sql (localhost,1433 / sa) via the mssql VS Code extension.
--- Database:   Day8Indexing (created below if it doesn't exist yet).
---
--- Run each numbered block below independently -- they're separated by GO so
--- you can execute one at a time and toggle "Enable Actual Plan" per query.
+/*
+    Day 8 - Task 1: Clustered vs Non-Clustered Index Exercise
+    ==========================================================
+    Run each GO-separated block yourself in VS Code (mssql extension).
+    Toggle "Enable Actual Plan" per query as needed.
 
-USE master;
-GO
+    NOTE ON ORDERING vs the original request list:
+    The "write-cost" comparison (0 non-clustered indexes vs 2 non-clustered
+    indexes) needs its "0 indexes" measurement taken BEFORE the two
+    non-clustered indexes exist. So that insert is placed right after the
+    clustered index step (Section 5) and before the CustomerId non-clustered
+    index (Section 6), rather than at the very end. The "2 indexes" insert
+    stays at the end, after both non-clustered indexes exist. Everything
+    else follows the requested order.
+*/
 
-IF DB_ID(N'Day8Indexing') IS NULL
-BEGIN
-    CREATE DATABASE Day8Indexing;
-END
+-- ============================================================
+-- 1. CREATE DATABASE
+-- ============================================================
+CREATE DATABASE Day8Indexing;
 GO
 
 USE Day8Indexing;
 GO
 
--- =====================================================================
--- 1. Orders table -- HEAP (no clustered index yet)
--- =====================================================================
-IF OBJECT_ID(N'dbo.Orders', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Orders
-    (
-        OrderId    INT IDENTITY(1,1) NOT NULL,
-        CustomerId INT           NOT NULL,
-        OrderDate  DATETIME2     NOT NULL,
-        Status     VARCHAR(20)   NOT NULL,
-        Amount     DECIMAL(10,2) NOT NULL,
-        Notes      VARCHAR(500)  NOT NULL
-    );
-END
+-- ============================================================
+-- 2. Orders table as a HEAP (no clustered index yet)
+-- ============================================================
+CREATE TABLE dbo.Orders
+(
+    OrderId     INT IDENTITY(1,1) NOT NULL,
+    CustomerId  INT           NOT NULL,
+    OrderDate   DATETIME2(3)  NOT NULL,
+    Status      VARCHAR(20)   NOT NULL,
+    Amount      DECIMAL(10,2) NOT NULL,
+    Notes       VARCHAR(500)  NOT NULL
+);
 GO
 
--- =====================================================================
--- 2. Populate ~100,000 rows -- set-based tally table, no WHILE loop
--- =====================================================================
--- Cascading CROSS JOINs double the row count at each level (L0=2, L1=4,
--- L2=16, L3=256, L4=65536, L5=~4.3 billion); TOP (100000) over the final
--- ROW_NUMBER() acts as a row goal so SQL Server stops generating numbers
--- once it has enough, instead of materializing the full cross join.
-IF NOT EXISTS (SELECT 1 FROM dbo.Orders)
-BEGIN
-    ;WITH
-    L0 AS (SELECT 1 AS c UNION ALL SELECT 1),
-    L1 AS (SELECT 1 AS c FROM L0 A CROSS JOIN L0 B),
-    L2 AS (SELECT 1 AS c FROM L1 A CROSS JOIN L1 B),
-    L3 AS (SELECT 1 AS c FROM L2 A CROSS JOIN L2 B),
-    L4 AS (SELECT 1 AS c FROM L3 A CROSS JOIN L3 B),
-    L5 AS (SELECT 1 AS c FROM L4 A CROSS JOIN L4 B),
-    Tally AS (
-        SELECT TOP (100000) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-        FROM L5
-    )
-    INSERT INTO dbo.Orders (CustomerId, OrderDate, Status, Amount, Notes)
-    SELECT
-        1 + ABS(CHECKSUM(NEWID())) % 5000 AS CustomerId,
-        DATEADD(SECOND, -1 * (ABS(CHECKSUM(NEWID())) % (2 * 365 * 24 * 60 * 60)), SYSDATETIME()) AS OrderDate,
-        CASE ABS(CHECKSUM(NEWID())) % 4
-            WHEN 0 THEN 'Pending'
-            WHEN 1 THEN 'Shipped'
-            WHEN 2 THEN 'Delivered'
-            ELSE 'Cancelled'
-        END AS Status,
-        CAST(5 + (ABS(CHECKSUM(NEWID())) % 99500) / 100.0 AS DECIMAL(10,2)) AS Amount,
-        LEFT(REPLICATE('Sample order note text used to pad row size for IO comparisons. ', 10), 500) AS Notes
-    FROM Tally;
-END
+-- ============================================================
+-- 3. Populate ~100,000 rows (set-based, no WHILE loop)
+--    Cascading CROSS JOINs on a base-10 tally CTE: 10 -> 100 -> 10,000 -> 1,000,000
+-- ============================================================
+;WITH
+E1(N)   AS (SELECT N FROM (VALUES (1),(1),(1),(1),(1),(1),(1),(1),(1),(1)) v(N)),      -- 10 rows
+E2(N)   AS (SELECT 1 FROM E1 a CROSS JOIN E1 b),                                        -- 100 rows
+E3(N)   AS (SELECT 1 FROM E2 a CROSS JOIN E2 b),                                        -- 10,000 rows
+E4(N)   AS (SELECT 1 FROM E3 a CROSS JOIN E2 b),                                        -- 1,000,000 rows
+Tally   AS (SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS N FROM E4)
+INSERT INTO dbo.Orders (CustomerId, OrderDate, Status, Amount, Notes)
+SELECT TOP (100000)
+    CustomerId = ABS(CHECKSUM(NEWID())) % 5000 + 1,                                     -- 1..5000
+    OrderDate  = DATEADD(SECOND, -(ABS(CHECKSUM(NEWID())) % (730 * 24 * 3600)), SYSDATETIME()), -- last 2 years
+    Status     = CASE ABS(CHECKSUM(NEWID())) % 4
+                     WHEN 0 THEN 'Pending'
+                     WHEN 1 THEN 'Shipped'
+                     WHEN 2 THEN 'Delivered'
+                     ELSE 'Cancelled'
+                 END,
+    Amount     = CAST(ABS(CHECKSUM(NEWID())) % 1000000 / 100.0 AS DECIMAL(10,2)),       -- 0.00..9999.99
+    Notes      = LEFT(REPLICATE('FillerData-BulkRow-', 30), 480)
+FROM Tally;
 GO
 
--- =====================================================================
--- -- BEFORE: heap baseline (no indexes at all) --
--- =====================================================================
--- Toggle "Enable Actual Plan" before running these. Expect Table Scans on
--- the heap for both queries -- record the STATISTICS IO logical reads for
--- "Table 'Orders'." on each SELECT below before moving on.
+-- Sanity check row count
+SELECT COUNT(*) AS RowCount FROM dbo.Orders;
+GO
+
+-- ============================================================
+-- 4. -- BEFORE any index: HEAP baseline
+-- ============================================================
 SET STATISTICS IO ON;
 GO
 
-SELECT * FROM Orders WHERE CustomerId = 2500;
+-- BEFORE (heap) - point lookup on CustomerId
+SELECT * FROM dbo.Orders WHERE CustomerId = 2500;
 GO
 
-SELECT OrderId, OrderDate, Amount FROM Orders
+-- BEFORE (heap) - date-range scan
+SELECT OrderId, OrderDate, Amount FROM dbo.Orders
 WHERE OrderDate >= '2025-01-01' AND OrderDate < '2025-02-01';
 GO
 
--- =====================================================================
--- -- AFTER: clustered index on OrderId (PK) --
--- =====================================================================
-IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = N'PK_Orders' AND parent_object_id = OBJECT_ID(N'dbo.Orders'))
-BEGIN
-    ALTER TABLE Orders ADD CONSTRAINT PK_Orders PRIMARY KEY CLUSTERED (OrderId);
-END
+SET STATISTICS IO OFF;
 GO
 
--- Rerun query 1 (CustomerId lookup) -- expect a Clustered Index Scan now
--- (still no index on CustomerId), so compare logical reads against the
--- heap's Table Scan above rather than expecting a seek yet.
+-- ============================================================
+-- 5. Add CLUSTERED index on OrderId, rerun CustomerId query
+-- ============================================================
+ALTER TABLE dbo.Orders
+ADD CONSTRAINT PK_Orders PRIMARY KEY CLUSTERED (OrderId);
+GO
+
 SET STATISTICS IO ON;
 GO
 
-SELECT * FROM Orders WHERE CustomerId = 2500;
+-- AFTER (clustered on OrderId) - same point lookup on CustomerId
+SELECT * FROM dbo.Orders WHERE CustomerId = 2500;
 GO
 
--- =====================================================================
--- -- WRITE COST 8a: clustered PK only, 0 non-clustered indexes --
--- =====================================================================
--- Baseline write cost with just the clustered index to maintain. Compare
--- these STATISTICS IO / STATISTICS TIME numbers against the 8b block at the
--- end of this file, once two non-clustered indexes also exist.
+SET STATISTICS IO OFF;
+GO
+
+-- ============================================================
+-- 8a. -- BEFORE non-clustered indexes exist: write-cost baseline
+--     (0 non-clustered indexes present at this point - only the clustered PK)
+-- ============================================================
+;WITH
+E1(N)   AS (SELECT N FROM (VALUES (1),(1),(1),(1),(1),(1),(1),(1),(1),(1)) v(N)),
+E2(N)   AS (SELECT 1 FROM E1 a CROSS JOIN E1 b),
+E3(N)   AS (SELECT 1 FROM E2 a CROSS JOIN E2 b),
+Tally   AS (SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS N FROM E3)
+SELECT TOP (5000)
+    CustomerId = ABS(CHECKSUM(NEWID())) % 5000 + 1,
+    OrderDate  = DATEADD(SECOND, -(ABS(CHECKSUM(NEWID())) % (730 * 24 * 3600)), SYSDATETIME()),
+    Status     = CASE ABS(CHECKSUM(NEWID())) % 4
+                     WHEN 0 THEN 'Pending'
+                     WHEN 1 THEN 'Shipped'
+                     WHEN 2 THEN 'Delivered'
+                     ELSE 'Cancelled'
+                 END,
+    Amount     = CAST(ABS(CHECKSUM(NEWID())) % 1000000 / 100.0 AS DECIMAL(10,2)),
+    Notes      = LEFT(REPLICATE('FillerData-BulkRow-', 30), 480)
+INTO #StageBefore
+FROM Tally;
+GO
+
 SET STATISTICS IO ON;
 SET STATISTICS TIME ON;
 GO
 
-;WITH
-L0 AS (SELECT 1 AS c UNION ALL SELECT 1),
-L1 AS (SELECT 1 AS c FROM L0 A CROSS JOIN L0 B),
-L2 AS (SELECT 1 AS c FROM L1 A CROSS JOIN L1 B),
-L3 AS (SELECT 1 AS c FROM L2 A CROSS JOIN L2 B),
-L4 AS (SELECT 1 AS c FROM L3 A CROSS JOIN L3 B),
-Tally5k AS (
-    SELECT TOP (5000) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-    FROM L4
-)
-INSERT INTO Orders (CustomerId, OrderDate, Status, Amount, Notes)
-SELECT
-    1 + ABS(CHECKSUM(NEWID())) % 5000 AS CustomerId,
-    DATEADD(SECOND, -1 * (ABS(CHECKSUM(NEWID())) % (2 * 365 * 24 * 60 * 60)), SYSDATETIME()) AS OrderDate,
-    CASE ABS(CHECKSUM(NEWID())) % 4
-        WHEN 0 THEN 'Pending'
-        WHEN 1 THEN 'Shipped'
-        WHEN 2 THEN 'Delivered'
-        ELSE 'Cancelled'
-    END AS Status,
-    CAST(5 + (ABS(CHECKSUM(NEWID())) % 99500) / 100.0 AS DECIMAL(10,2)) AS Amount,
-    LEFT(REPLICATE('Sample order note text used to pad row size for IO comparisons. ', 10), 500) AS Notes
-FROM Tally5k;
+-- BEFORE (0 non-clustered indexes) - insert 5,000 rows in one batch
+INSERT INTO dbo.Orders (CustomerId, OrderDate, Status, Amount, Notes)
+SELECT CustomerId, OrderDate, Status, Amount, Notes FROM #StageBefore;
 GO
 
--- =====================================================================
--- -- AFTER: non-clustered index on CustomerId --
--- =====================================================================
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Orders_CustomerId' AND object_id = OBJECT_ID(N'dbo.Orders'))
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_Orders_CustomerId ON Orders (CustomerId);
-END
+SET STATISTICS IO OFF;
+SET STATISTICS TIME OFF;
 GO
 
--- Rerun the CustomerId query -- expect an Index Seek on IX_Orders_CustomerId
--- feeding a Key Lookup into the clustered index (SELECT * pulls columns not
--- in this narrow index), and lower logical reads than the clustered scan.
+DROP TABLE #StageBefore;
+GO
+
+-- ============================================================
+-- 6. Add NON-CLUSTERED index on CustomerId, rerun CustomerId query
+-- ============================================================
+CREATE NONCLUSTERED INDEX IX_Orders_CustomerId ON dbo.Orders (CustomerId);
+GO
+
 SET STATISTICS IO ON;
 GO
 
-SELECT * FROM Orders WHERE CustomerId = 2500;
+-- AFTER (non-clustered index on CustomerId) - same point lookup
+SELECT * FROM dbo.Orders WHERE CustomerId = 2500;
 GO
 
--- =====================================================================
--- -- AFTER: covering non-clustered index on OrderDate INCLUDE (Amount) --
--- =====================================================================
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Orders_OrderDate_Include_Amount' AND object_id = OBJECT_ID(N'dbo.Orders'))
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_Orders_OrderDate_Include_Amount ON Orders (OrderDate) INCLUDE (Amount);
-END
+SET STATISTICS IO OFF;
 GO
 
--- Rerun the date-range query -- expect a single Index Seek on
--- IX_Orders_OrderDate_Include_Amount with no Key Lookup, since OrderId,
--- OrderDate, and Amount are all present in the index leaf.
+-- ============================================================
+-- 7. Add NON-CLUSTERED covering index on OrderDate INCLUDE (Amount),
+--    rerun the date-range query
+-- ============================================================
+CREATE NONCLUSTERED INDEX IX_Orders_OrderDate_Include_Amount
+    ON dbo.Orders (OrderDate) INCLUDE (Amount);
+GO
+
 SET STATISTICS IO ON;
 GO
 
-SELECT OrderId, OrderDate, Amount FROM Orders
+-- AFTER (covering non-clustered index on OrderDate) - same date-range query
+SELECT OrderId, OrderDate, Amount FROM dbo.Orders
 WHERE OrderDate >= '2025-01-01' AND OrderDate < '2025-02-01';
 GO
 
--- =====================================================================
--- -- WRITE COST 8b: clustered PK + 2 non-clustered indexes --
--- =====================================================================
--- Same shape of insert as 8a, but now every row has to update the clustered
--- index AND both non-clustered indexes (IX_Orders_CustomerId,
--- IX_Orders_OrderDate_Include_Amount). Compare STATISTICS IO / STATISTICS TIME
--- here against 8a to see the write-cost impact of the two extra indexes.
+SET STATISTICS IO OFF;
+GO
+
+-- ============================================================
+-- 8b. -- AFTER both non-clustered indexes exist: write-cost comparison
+--     (2 non-clustered indexes present: IX_Orders_CustomerId,
+--      IX_Orders_OrderDate_Include_Amount)
+-- ============================================================
+;WITH
+E1(N)   AS (SELECT N FROM (VALUES (1),(1),(1),(1),(1),(1),(1),(1),(1),(1)) v(N)),
+E2(N)   AS (SELECT 1 FROM E1 a CROSS JOIN E1 b),
+E3(N)   AS (SELECT 1 FROM E2 a CROSS JOIN E2 b),
+Tally   AS (SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS N FROM E3)
+SELECT TOP (5000)
+    CustomerId = ABS(CHECKSUM(NEWID())) % 5000 + 1,
+    OrderDate  = DATEADD(SECOND, -(ABS(CHECKSUM(NEWID())) % (730 * 24 * 3600)), SYSDATETIME()),
+    Status     = CASE ABS(CHECKSUM(NEWID())) % 4
+                     WHEN 0 THEN 'Pending'
+                     WHEN 1 THEN 'Shipped'
+                     WHEN 2 THEN 'Delivered'
+                     ELSE 'Cancelled'
+                 END,
+    Amount     = CAST(ABS(CHECKSUM(NEWID())) % 1000000 / 100.0 AS DECIMAL(10,2)),
+    Notes      = LEFT(REPLICATE('FillerData-BulkRow-', 30), 480)
+INTO #StageAfter
+FROM Tally;
+GO
+
 SET STATISTICS IO ON;
 SET STATISTICS TIME ON;
 GO
 
-;WITH
-L0 AS (SELECT 1 AS c UNION ALL SELECT 1),
-L1 AS (SELECT 1 AS c FROM L0 A CROSS JOIN L0 B),
-L2 AS (SELECT 1 AS c FROM L1 A CROSS JOIN L1 B),
-L3 AS (SELECT 1 AS c FROM L2 A CROSS JOIN L2 B),
-L4 AS (SELECT 1 AS c FROM L3 A CROSS JOIN L3 B),
-Tally5k AS (
-    SELECT TOP (5000) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-    FROM L4
-)
-INSERT INTO Orders (CustomerId, OrderDate, Status, Amount, Notes)
-SELECT
-    1 + ABS(CHECKSUM(NEWID())) % 5000 AS CustomerId,
-    DATEADD(SECOND, -1 * (ABS(CHECKSUM(NEWID())) % (2 * 365 * 24 * 60 * 60)), SYSDATETIME()) AS OrderDate,
-    CASE ABS(CHECKSUM(NEWID())) % 4
-        WHEN 0 THEN 'Pending'
-        WHEN 1 THEN 'Shipped'
-        WHEN 2 THEN 'Delivered'
-        ELSE 'Cancelled'
-    END AS Status,
-    CAST(5 + (ABS(CHECKSUM(NEWID())) % 99500) / 100.0 AS DECIMAL(10,2)) AS Amount,
-    LEFT(REPLICATE('Sample order note text used to pad row size for IO comparisons. ', 10), 500) AS Notes
-FROM Tally5k;
+-- AFTER (2 non-clustered indexes) - insert 5,000 rows in one batch
+INSERT INTO dbo.Orders (CustomerId, OrderDate, Status, Amount, Notes)
+SELECT CustomerId, OrderDate, Status, Amount, Notes FROM #StageAfter;
+GO
+
+SET STATISTICS IO OFF;
+SET STATISTICS TIME OFF;
+GO
+
+DROP TABLE #StageAfter;
 GO
