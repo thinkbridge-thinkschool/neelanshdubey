@@ -66,6 +66,8 @@ otelBuilder.WithTracing(t =>
     }
 });
 
+builder.Services.AddExternalQuotesClient();
+
 builder.Services.AddSingleton<IAuthorizationHandler, SameOwnerAuthorizationHandler>();
 
 builder.Services.AddAuthorization(options =>
@@ -100,8 +102,10 @@ if (!app.Environment.IsEnvironment("Testing"))
 }
 
 app.MapGet("/", () => "Quotes API is running!");
+app.MapGet("/health", () => Results.Ok("healthy"));
 
 app.MapAuthEndpoints();
 app.MapQuoteEndpoints();
+app.MapInspirationEndpoints();
 
 app.Run();

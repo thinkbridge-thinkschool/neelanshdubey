@@ -164,6 +164,52 @@ Both screenshots below are real captures from the Aspire Dashboard (http://local
 
 The span count collapsed from 12 → 3 for the same 10-quote page — the direct, visual confirmation that the N+1 is gone.
 
+## Containerized verification
+
+Beyond `dotnet run`, tracing was also verified against a container image built straight from the csproj via the .NET SDK's built-in containerization support (no Dockerfile needed):
+
+```xml
+<ContainerImageName>quotes-api</ContainerImageName>
+<ContainerImageTag>0.1.0</ContainerImageTag>
+<ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0-alpine</ContainerBaseImage>
+```
+
+```bash
+dotnet publish -t:PublishContainer -c Release
+
+docker run -d --name quotesapi-demo -p 8080:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Development \
+  -e OpenTelemetry__OtlpEndpoint=http://host.docker.internal:4317 \
+  -e Jwt__SigningKey="container-demo-signing-key-not-for-production-1234567890" \
+  -e ConnectionStrings__DefaultConnection="Data Source=/tmp/quotes.db" \
+  quotes-api:0.1.0
+```
+
+Two gotchas found along the way:
+- The alpine base image's non-root user can't write to `/app`, so SQLite needs a writable path (`/tmp/quotes.db`) via `ConnectionStrings__DefaultConnection`.
+- `host.docker.internal` is what lets the container reach the Aspire dashboard container running on the host — plain `localhost` inside a container refers to the container itself, not the host.
+
+`GET /health` and `GET /api/quotes` were both hit against the running container and traced successfully. The endpoint itself responds as expected:
+
+![Container health endpoint response](QuotesApi/docs/container-health-endpoint-response.png)
+
+**`GET /health`** — trace `73eb266`, resource `QuotesApi-21b999f9`, 1 span:
+
+![Container health trace](QuotesApi/docs/container-trace-health.png)
+
+**`GET /api/quotes`** — trace `da9d915`, same resource, 3 spans (1 root + 2 EF Core queries against `/tmp/quotes.db`, confirming this is genuinely the containerized instance and not a host process):
+
+![Container quotes trace](QuotesApi/docs/container-trace-quotes.png)
+
+Cross-checked against the container's own Serilog output for the same two requests:
+
+```
+[06:53:18 INF] TraceId=73eb26640100fe834f6bb32c761b62de Serilog.AspNetCore.RequestLoggingMiddleware: HTTP GET /health responded 200 in 37.0232 ms
+[06:53:18 INF] TraceId=da9d915b1e592b06bb5cff4703635994 Serilog.AspNetCore.RequestLoggingMiddleware: HTTP GET /api/quotes responded 200 in 180.6818 ms
+```
+
+`73eb266` and `da9d915` are exactly the leading digits of these two TraceIds — confirming the same trace correlation that holds for `dotnet run` also holds when the app is running inside a container.
+
 ## Bonus: KQL for Application Insights — finding similar slow endpoints/dependencies
 
 ```kql
