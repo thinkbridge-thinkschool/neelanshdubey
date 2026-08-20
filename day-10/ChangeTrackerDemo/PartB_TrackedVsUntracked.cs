@@ -23,6 +23,16 @@ public static class PartB_TrackedVsUntracked
         }
 
         Console.WriteLine();
+        Console.WriteLine("-- Resetting baseline Status for the mutation scenarios (each run should start clean) --");
+        using (var resetCtx = new OrdersDbContext(DbInitializer.ConnectionString))
+        {
+            var resetRows = resetCtx.Orders
+                .Where(o => o.OrderId == trackedMutateId || o.OrderId == noTrackMutateId)
+                .ExecuteUpdate(setters => setters.SetProperty(o => o.Status, "Pending"));
+            Console.WriteLine($"   Reset {resetRows} row(s) to Status='Pending'.");
+        }
+
+        Console.WriteLine();
         Console.WriteLine("-- Mutation scenario 1: tracked entity, no explicit Update() call --");
         var trackedNewStatus = $"Tracked-{Guid.NewGuid():N}"[..20];
         using (var ctx = new OrdersDbContext(DbInitializer.ConnectionString))
