@@ -6,7 +6,10 @@ namespace ChangeTrackerDemo;
 
 // sqlLogger, when supplied, receives one call per "Executed DbCommand" line EF Core
 // logs - this is how Part A proves whether a given query actually hit the database.
-public class OrdersDbContext(string connectionString, Action<string>? sqlLogger = null) : DbContext
+public class OrdersDbContext(
+    string connectionString,
+    Action<string>? sqlLogger = null,
+    bool enableSensitiveDataLogging = false) : DbContext
 {
     public DbSet<Order> Orders => Set<Order>();
 
@@ -17,6 +20,13 @@ public class OrdersDbContext(string connectionString, Action<string>? sqlLogger 
         if (sqlLogger is not null)
         {
             optionsBuilder.LogTo(sqlLogger, [RelationalEventId.CommandExecuted], LogLevel.Information);
+        }
+
+        if (enableSensitiveDataLogging)
+        {
+            // Dev-only: bakes actual parameter values into logged SQL instead of placeholders.
+            // Must NEVER be enabled in production - it can leak PII straight into log output.
+            optionsBuilder.EnableSensitiveDataLogging();
         }
     }
 
