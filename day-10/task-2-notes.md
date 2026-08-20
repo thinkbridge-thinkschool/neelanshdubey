@@ -71,6 +71,57 @@ FROM [Orders] AS [o]
 WHERE [o].[Status] = N'Shipped'
 ```
 
+## Part C — Catching a client-side evaluation
+
+[`Task2_PartC_ClientEval.cs`](ChangeTrackerDemo/Task2_PartC_ClientEval.cs).
+
+**Broken:** filtering on a plain C# helper method inside `Where()`. EF Core has no SQL
+translator for an arbitrary user-defined method, so it throws at runtime instead of
+silently falling back to client evaluation (that silent-fallback behavior was removed
+in EF Core 3.0+):
+
+```csharp
+private static bool IsShippedStatus(string status) =>
+    status.IndexOf("hip", StringComparison.OrdinalIgnoreCase) >= 0;
+...
+var broken = context.Orders.Where(o => IsShippedStatus(o.Status)).ToList();
+```
+
+Actual exception:
+
+```
+System.InvalidOperationException: The LINQ expression 'DbSet<Order>()
+    .Where(o => Task2_PartC_ClientEval.IsShippedStatus(o.Status))' could not be
+translated. Additional information: Translation of method
+'ChangeTrackerDemo.Task2_PartC_ClientEval.IsShippedStatus' failed. If this method can
+be mapped to your custom function, see
+https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite
+the query in a form that can be translated, or switch to client evaluation explicitly
+by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'.
+See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+```
+
+**Fixed:** replace the custom method with `EF.Functions.Like`, which EF Core does have
+a SQL translator for:
+
+```csharp
+var fixedRows = context.Orders.Where(o => EF.Functions.Like(o.Status, "%hip%")).ToList();
+```
+
+Corrected SQL — the filter is pushed down to the database as a `LIKE`, not evaluated
+in a C# loop:
+
+```sql
+SELECT [o].[OrderId], [o].[Amount], [o].[CustomerId], [o].[OrderDate], [o].[Status]
+FROM [Orders] AS [o]
+WHERE [o].[Status] LIKE N'%hip%'
+```
+
+Rows returned: 1,856 — matches Part A/B's exact `Status == "Shipped"` count exactly,
+since `"Shipped"` is the only one of the four status values containing the substring
+`"hip"`. This confirms the `WHERE` clause is doing real filtering server-side rather
+than shipping all 10,000 rows over the wire.
+
 ## Full run output (this machine, 2026-08-20)
 
 ```
@@ -82,8 +133,8 @@ Day 10, Task 2: Query Translation + Projections
    Rows returned: 1856
 
 Generated SQL:
-info: 20-08-2026 10:46:26.805 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
-      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+info: 20-08-2026 10:49:38.561 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT [o].[OrderId], [o].[Amount], [o].[CustomerId], [o].[OrderDate], [o].[Status]
       FROM [Orders] AS [o]
       WHERE [o].[Status] = N'Shipped'
@@ -94,28 +145,44 @@ info: 20-08-2026 10:46:26.805 RelationalEventId.CommandExecuted[20101] (Microsof
    Rows returned: 1856
 
 Generated SQL:
-info: 20-08-2026 10:46:26.920 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
-      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+info: 20-08-2026 10:49:38.678 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT [o].[OrderId], [o].[OrderDate], [o].[Amount]
       FROM [Orders] AS [o]
       WHERE [o].[Status] = N'Shipped'
 
 === Side-by-side SQL comparison (Part A vs Part B) ===
 -- Whole-entity query: 5 columns (OrderId, CustomerId, OrderDate, Status, Amount) --
-info: 20-08-2026 10:46:26.805 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
-      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+info: 20-08-2026 10:49:38.561 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
+      Executed DbCommand (7ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT [o].[OrderId], [o].[Amount], [o].[CustomerId], [o].[OrderDate], [o].[Status]
       FROM [Orders] AS [o]
       WHERE [o].[Status] = N'Shipped'
 
 -- Projected query: 3 columns (OrderId, OrderDate, Amount only) --
-info: 20-08-2026 10:46:26.920 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
-      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+info: 20-08-2026 10:49:38.678 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
+      Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT [o].[OrderId], [o].[OrderDate], [o].[Amount]
       FROM [Orders] AS [o]
       WHERE [o].[Status] = N'Shipped'
 
+=== Part C: Catching a client-side evaluation ===
+-- BROKEN: context.Orders.Where(o => IsShippedStatus(o.Status)).ToList() --
+   (IsShippedStatus is a custom C# method call - EF has no translator for it)
+   Threw InvalidOperationException, as expected:
+   The LINQ expression 'DbSet<Order>()
+    .Where(o => Task2_PartC_ClientEval.IsShippedStatus(o.Status))' could not be translated. Additional information: Translation of method 'ChangeTrackerDemo.Task2_PartC_ClientEval.IsShippedStatus' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+
+-- FIXED: context.Orders.Where(o => EF.Functions.Like(o.Status, "%hip%")).ToList() --
+   (EF.Functions.Like has a built-in translator -> SQL LIKE, pushed down to the database)
+   Rows returned: 1856
+
+Generated SQL:
+info: 20-08-2026 10:49:38.749 RelationalEventId.CommandExecuted[20101] (Microsoft.EntityFrameworkCore.Database.Command)
+      Executed DbCommand (8ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [o].[OrderId], [o].[Amount], [o].[CustomerId], [o].[OrderDate], [o].[Status]
+      FROM [Orders] AS [o]
+      WHERE [o].[Status] LIKE N'%hip%'
+
 Done.
 ```
-
-Part C (client-side evaluation) is covered separately below, in its own commit.

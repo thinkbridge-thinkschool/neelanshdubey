@@ -21,4 +21,6 @@ var wholeEntitySql = Task2_PartA_WholeEntityQuery.Run();
 var projectedSql = Task2_PartB_Projection.Run();
 Task2_PartB_Projection.PrintComparison(wholeEntitySql, projectedSql);
 
+Task2_PartC_ClientEval.Run();
+
 Console.WriteLine("Done.");
