@@ -66,6 +66,7 @@ public static class InfrastructureExtensions
 
         dbContext.Database.Migrate();
         SeedUsers(dbContext);
+        AuthorQuoteSeeder.Seed(dbContext);
 
         return app;
     }
