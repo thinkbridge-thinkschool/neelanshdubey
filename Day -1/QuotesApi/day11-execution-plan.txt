@@ -1,0 +1,77 @@
+Day 11 Task 1 - Execution Plan for Quotes.AuthorId Lookup
+============================================================
+
+Query under test (run directly via sqlcmd against the day9-sql container,
+database QuotesApiDb):
+
+    SELECT * FROM Quotes WHERE AuthorId = 1;
+
+This is exactly the query the N+1 loop in GET /api/authors/with-quotes
+issues once per author, against the unindexed Quotes.AuthorId column.
+
+1) STATISTICS IO
+------------------
+SET STATISTICS IO ON;
+SELECT * FROM Quotes WHERE AuthorId = 1;
+SET STATISTICS IO OFF;
+
+Result: 53 rows returned.
+
+Table 'Quotes'. Scan count 1, logical reads 501, physical reads 0,
+page server reads 0, read-ahead reads 0, page server read-ahead reads 0,
+lob logical reads 0, lob physical reads 0, lob page server reads 0,
+lob read-ahead reads 0, lob page server read-ahead reads 0.
+
+501 logical page reads to return 53 rows out of 9,948 total rows in the
+table -- the engine had to read essentially every page of Quotes to find
+the ones matching AuthorId = 1, because there is no index to jump
+straight to them.
+
+2) SHOWPLAN_XML summary
+--------------------------
+SET SHOWPLAN_XML ON;
+SELECT * FROM Quotes WHERE AuthorId = 1;
+SET SHOWPLAN_XML OFF;
+
+Scan type:              Clustered Index Scan (PhysicalOp/LogicalOp both
+                         "Clustered Index Scan") on Object Index=[PK_Quotes],
+                         IndexKind="Clustered"
+Plain English:          Full table scan. Quotes has no nonclustered index
+                         on AuthorId, so the only index available is the
+                         clustered index on Id (the table's own storage
+                         order). SQL Server has to walk that entire
+                         structure and evaluate the AuthorId = 1 predicate
+                         row by row.
+Estimated rows matching: 53   (StatementEstRows / RelOp EstimateRows)
+Rows actually read:      9,948  (RelOp EstimatedRowsRead == TableCardinality)
+                         i.e. the plan reads the whole table to produce 53
+                         matching rows.
+Table cardinality:       9,948 rows (RelOp TableCardinality)
+Estimated subtree cost:  0.383114
+Estimated I/O cost:      0.372014
+Estimated CPU cost:      0.0110998
+Optimization level:      TRIVIAL (query is simple enough that the optimizer
+                         doesn't even need full cost-based optimization --
+                         a scan is the only plan shape available without an
+                         index)
+
+Raw plan XML (RelOp node, trimmed to the relevant operator):
+
+<RelOp NodeId="0" PhysicalOp="Clustered Index Scan" LogicalOp="Clustered Index Scan"
+       EstimateRows="53" EstimatedRowsRead="9948" EstimateIO="0.372014"
+       EstimateCPU="0.0110998" AvgRowSize="4054"
+       EstimatedTotalSubtreeCost="0.383114" TableCardinality="9948">
+  <IndexScan Ordered="0" Storage="RowStore">
+    <Object Database="[QuotesApiDb]" Schema="[dbo]" Table="[Quotes]"
+            Index="[PK_Quotes]" IndexKind="Clustered" Storage="RowStore" />
+    <Predicate>
+      <ScalarOperator ScalarString="[QuotesApiDb].[dbo].[Quotes].[AuthorId]=CONVERT_IMPLICIT(int,[@1],0)" />
+    </Predicate>
+  </IndexScan>
+</RelOp>
+
+Bottom line: every single call to `_db.Quotes.Where(q => q.AuthorId ==
+author.Id).ToList()` in the N+1 loop forces SQL Server to scan all 9,948
+rows of Quotes to find that author's ~50 quotes. Multiply by 200 authors
+per request and the endpoint scans the entire Quotes table roughly 200
+times over.
