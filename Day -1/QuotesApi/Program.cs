@@ -20,5 +20,6 @@ app.MapGet("/", () => "Quotes API is running!");
 
 app.MapAuthEndpoints();
 app.MapQuoteEndpoints();
+app.MapAuthorEndpoints();
 
 app.Run();
