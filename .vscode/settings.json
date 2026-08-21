@@ -10,6 +10,17 @@
       "savePassword": true,
       "encrypt": "Mandatory",
       "trustServerCertificate": true
+    },
+    {
+      "profileName": "day11-nplusonefix",
+      "server": "localhost,1434",
+      "database": "NPlusOneFixDb",
+      "authenticationType": "SqlLogin",
+      "user": "sa",
+      "password": "",
+      "savePassword": true,
+      "encrypt": "Mandatory",
+      "trustServerCertificate": true
     }
   ]
 }
