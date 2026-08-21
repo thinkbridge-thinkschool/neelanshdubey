@@ -32,5 +32,11 @@ public class AppDbContext : DbContext
             .HasOne(b => b.Author)
             .WithMany(a => a.Books)
             .HasForeignKey(b => b.AuthorId);
+
+        // Covers the projection query's SELECT list (Title, PublishedYear) so the
+        // engine can satisfy it from the index alone - no Key Lookup into PK_Books.
+        modelBuilder.Entity<Book>()
+            .HasIndex(b => b.AuthorId)
+            .IncludeProperties(b => new { b.PublishedYear, b.Title });
     }
 }
