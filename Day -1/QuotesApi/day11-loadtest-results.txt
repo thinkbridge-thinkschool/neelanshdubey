@@ -1,0 +1,57 @@
+Day 11 Task 1 - k6 Load Test Results
+=======================================
+
+Target:   GET http://localhost:5292/api/authors/with-quotes
+Config:   10 VUs, 30s duration (day11-loadtest.js) -- ran as configured,
+          no need to scale down; the endpoint sustained 10 VUs for the
+          full 30s without request failures or timeouts.
+k6:       v2.2.0 (grafana/k6, portable windows-amd64 build)
+Database: day9-sql container (SQL Server 2022, port 1434), QuotesApiDb,
+          200 authors / 9,948 quotes, no index on Quotes.AuthorId.
+
+Summary output
+----------------
+
+  █ THRESHOLDS
+
+    http_req_failed
+    check 'rate<0.5' rate=0.00%
+
+  █ TOTAL RESULTS
+
+    checks_total.......: 180     5.719748/s
+    checks_succeeded...: 100.00% 180 out of 180
+    checks_failed......: 0.00%   0 out of 180
+
+    check status is 200
+
+    HTTP
+    http_req_duration..............: avg=1.73s min=1.2s med=1.55s max=2.65s p(90)=2.18s p(95)=2.49s
+      { expected_response:true }...: avg=1.73s min=1.2s med=1.55s max=2.65s p(90)=2.18s p(95)=2.49s
+    http_req_failed................: 0.00%  0 out of 180
+    http_reqs......................: 180    5.719748/s
+
+    EXECUTION
+    iteration_duration.............: avg=1.73s min=1.2s med=1.55s max=2.66s p(90)=2.2s  p(95)=2.49s
+    iterations.....................: 180    5.719748/s
+    vus............................: 10     min=10       max=10
+    vus_max........................: 10     min=10       max=10
+
+    NETWORK
+    data_received..................: 439 MB 14 MB/s
+    data_sent......................: 17 kB  532 B/s
+
+Key numbers
+-------------
+p50 (med): 1.55s
+p90:       2.18s
+p95:       2.49s
+p99:       not reported by this k6 build's default summary (only
+           p90/p95 are included by default); max observed was 2.65s,
+           which stands in for the tail here.
+Throughput: ~5.7 req/s across 10 concurrent VUs, 180 completed iterations,
+            0 failed requests.
+
+Every request pays for 201 SQL round trips (1 Authors query + 200
+Quotes-by-AuthorId table scans), which is why median latency alone is
+already 1.55s per call before any additional load is applied.

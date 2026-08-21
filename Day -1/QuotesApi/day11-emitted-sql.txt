@@ -1,0 +1,43 @@
+Day 11 Task 1 - Emitted SQL for GET /api/authors/with-quotes
+==============================================================
+
+Captured via the default EF Core console logging (appsettings.json already
+logs the "Default" category at Information, which includes
+Microsoft.EntityFrameworkCore.Database.Command) while running QuotesApi
+against the day9-sql container and hitting the endpoint once with curl:
+
+    curl -s http://localhost:5292/api/authors/with-quotes
+
+Request result: HTTP 200, 2,436,513 bytes, ~1.9s wall clock.
+
+1) The single "load all authors" query (1 total)
+--------------------------------------------------
+Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [a].[Id], [a].[Name]
+      FROM [Authors] AS [a]
+
+2) The per-author "load quotes" query, repeated once per author (200 total)
+-----------------------------------------------------------------------------
+First occurrence:
+Executed DbCommand (16ms) [Parameters=[@author_Id='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT [q].[Id], [q].[AuthorId], [q].[CreatedAt], [q].[IsDeleted], [q].[Text]
+      FROM [Quotes] AS [q]
+      WHERE [q].[AuthorId] = @author_Id
+
+Second occurrence (identical shape, different parameter value each time):
+Executed DbCommand (2ms) [Parameters=[@author_Id='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT [q].[Id], [q].[AuthorId], [q].[CreatedAt], [q].[IsDeleted], [q].[Text]
+      FROM [Quotes] AS [q]
+      WHERE [q].[AuthorId] = @author_Id
+
+Third occurrence:
+Executed DbCommand (2ms) [Parameters=[@author_Id='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT [q].[Id], [q].[AuthorId], [q].[CreatedAt], [q].[IsDeleted], [q].[Text]
+      FROM [Quotes] AS [q]
+      WHERE [q].[AuthorId] = @author_Id
+
+Repeat count for this pattern, single request: 200
+(verified with `grep -c "FROM \[Quotes\] AS \[q\]" <captured log>` = 200,
+matching the 200 seeded authors)
+
+Total round trips for one call to GET /api/authors/with-quotes: 1 + 200 = 201

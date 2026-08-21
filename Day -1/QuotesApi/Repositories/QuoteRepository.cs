@@ -24,6 +24,7 @@ public class QuoteRepository : IQuoteRepository
     {
         return await _db.Quotes
             .AsNoTracking()
+            .Include(q => q.Author)
             .OrderBy(q => q.Id)
             .Skip((page - 1) * size)
             .Take(size)
@@ -36,6 +37,7 @@ public class QuoteRepository : IQuoteRepository
     {
         return await _db.Quotes
             .AsNoTracking()
+            .Include(q => q.Author)
             .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);
     }
 

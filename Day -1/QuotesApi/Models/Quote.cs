@@ -4,7 +4,9 @@ public class Quote
 {
     public int Id { get; set; }
 
-    public string Author { get; set; } = string.Empty;
+    public int AuthorId { get; set; }
+
+    public Author Author { get; set; } = null!;
 
     public string Text { get; set; } = string.Empty;
 
@@ -12,16 +14,12 @@ public class Quote
 
     public bool IsDeleted { get; private set; }
 
-    public static Quote Create(string author, string text)
+    public static Quote Create(int authorId, string text)
     {
-        var trimmedAuthor = author?.Trim() ?? string.Empty;
         var trimmedText = text?.Trim() ?? string.Empty;
 
-        if (string.IsNullOrWhiteSpace(trimmedAuthor))
-            throw new DomainException("Author is required.");
-
-        if (trimmedAuthor.Length > 200)
-            throw new DomainException("Author must be 200 characters or fewer.");
+        if (authorId <= 0)
+            throw new DomainException("AuthorId is required.");
 
         if (string.IsNullOrWhiteSpace(trimmedText))
             throw new DomainException("Text is required.");
@@ -31,7 +29,7 @@ public class Quote
 
         return new Quote
         {
-            Author = trimmedAuthor,
+            AuthorId = authorId,
             Text = trimmedText,
             CreatedAt = DateTimeOffset.UtcNow
         };
