@@ -39,7 +39,7 @@ public static class QuoteEndpointExtensions
             CancellationToken cancellationToken) =>
         {
             var errors = validator.Validate(
-                request.Author,
+                request.AuthorId,
                 request.Text);
 
             if (errors.Count > 0)
@@ -48,7 +48,7 @@ public static class QuoteEndpointExtensions
             }
 
             var quote = Quote.Create(
-                request.Author,
+                request.AuthorId,
                 request.Text);
 
             var created = await repository.AddAsync(

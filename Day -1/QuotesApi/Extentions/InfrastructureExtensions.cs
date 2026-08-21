@@ -16,8 +16,11 @@ public static class InfrastructureExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("Default")
+            ?? "Server=localhost,1434;Database=QuotesApiDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;";
+
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlite("Data Source=quotes.db"));
+            options.UseSqlServer(connectionString));
 
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddSingleton<IClock, SystemClock>();

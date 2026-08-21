@@ -1,5 +1,5 @@
 namespace QuotesApi.Models;
 
 public record CreateQuoteRequest(
-    string Author,
+    int AuthorId,
     string Text);
