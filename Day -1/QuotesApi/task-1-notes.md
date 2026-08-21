@@ -93,6 +93,15 @@ http_reqs......................: 180    5.719748/s
 - **p95: 2.49s** (this k6 build's default summary reports p90/p95, not p99; max observed was 2.65s and stands in for the tail)
 - Throughput topped out at **~5.7 req/s** with only 10 concurrent users -- each request is dominated by 201 sequential round trips, so there's very little room to push more load through before requests start queuing behind each other.
 
+## Screenshots
+
+- [screenshots/api-authors-with-quotes.png](screenshots/api-authors-with-quotes.png) -- browser hit against `GET /api/authors/with-quotes`, showing real seeded data (`Author 001` and its quotes with `id`/`text`/`createdAt`).
+- [screenshots/api-quotes-list.png](screenshots/api-quotes-list.png) -- browser hit against `GET /api/quotes?page=1&size=5`, showing the `author` object populated on each quote.
+- [screenshots/sql-query-authorid.png](screenshots/sql-query-authorid.png) -- `sqlcmd` run directly against `day9-sql`/`QuotesApiDb`, returning real rows for `WHERE AuthorId = 1`.
+- [screenshots/sql-query-statisticsio.png](screenshots/sql-query-statisticsio.png) -- same query with `SET STATISTICS IO ON`: `MatchingRows = 53`, `Scan count 1, logical reads 501`.
+
+**Bug found and fixed while taking the API screenshot:** `GET /api/quotes` was returning `"author": null` on every quote. Normalizing `Quote.Author` into a real FK relationship (this task's Step 1) meant `QuoteRepository.GetAllAsync`/`GetByIdAsync` needed `.Include(q => q.Author)` to actually load it -- without that, the navigation property just serializes as `null`. Adding the `Include` then surfaced a second, more interesting bug: EF Core does inverse-navigation fixup during query materialization even on `AsNoTracking()` queries, so multiple quotes sharing the same author caused `quote.Author.Quotes` to loop back to the same quotes -- a genuine serialization cycle (`System.Text.Json` throws `SerializerCycleDetected`, which surfaced as a 500). Fixed by marking `Author.Quotes` `[JsonIgnore]` (see [Models/Author.cs](Models/Author.cs)): the collection is still populated by EF for any code that needs it, it just isn't serialized back out through a `Quote.Author.Quotes` round trip.
+
 ## Two biggest problems
 
 1. **The query pattern forces a full scan per author, and it does it 200 times per request.** The root issue isn't "SQL Server is slow" -- it's that `Where(q => q.AuthorId == author.Id)` has no index to use, so every one of those 200 lookups has to walk the entire 9,948-row `Quotes` table to find ~50 matching rows. Each individual scan is cheap in isolation (501 logical reads, sub-millisecond CPU), but the cost is linear in the number of authors, and it's paid 200 times *per request*, not once. This is the part a single-index fix (an index on `Quotes.AuthorId`) directly resolves: a seek instead of a scan turns "read 9,948 rows to get 50" into "read ~50 rows directly."
