@@ -1,0 +1,2 @@
+Authors: 500, Books counted: 9960
+Query count (N+1 baseline): 501
