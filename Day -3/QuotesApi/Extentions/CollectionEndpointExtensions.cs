@@ -69,6 +69,23 @@ public static class CollectionEndpointExtensions
                 : Results.Ok(details);
         });
 
+        // Same read as above, side by side for a head-to-head comparison:
+        // this one runs a single hand-written SQL JOIN through Dapper
+        // instead of EF's LINQ projection.
+        app.MapGet("/api/collections/{id:guid}/details/dapper", async (
+            Guid id,
+            GetCollectionDetailsDapperQueryHandler handler,
+            CancellationToken cancellationToken) =>
+        {
+            var details = await handler.HandleAsync(
+                new GetCollectionDetailsDapperQuery(id),
+                cancellationToken);
+
+            return details is null
+                ? Results.NotFound()
+                : Results.Ok(details);
+        });
+
         app.MapPost("/api/collections/{id:guid}/items", async (
             Guid id,
             AddCollectionItemRequest request,

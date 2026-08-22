@@ -37,6 +37,7 @@ public static class InfrastructureExtensions
         services.AddScoped<ICollectionRepository, CollectionRepository>();
         services.AddScoped<AddQuoteToCollectionCommandHandler>();
         services.AddScoped<GetCollectionDetailsQueryHandler>();
+        services.AddScoped<GetCollectionDetailsDapperQueryHandler>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddTransient<IQuoteValidator, QuoteValidator>();
         services.AddSingleton<ITokenService, TokenService>();
