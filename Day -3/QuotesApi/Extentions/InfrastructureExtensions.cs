@@ -5,6 +5,7 @@ using System.Text;
 using QuotesApi.Commands;
 using QuotesApi.Data;
 using QuotesApi.Models;
+using QuotesApi.Queries;
 using QuotesApi.Repositories;
 using QuotesApi.Services;
 
@@ -35,6 +36,7 @@ public static class InfrastructureExtensions
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddScoped<ICollectionRepository, CollectionRepository>();
         services.AddScoped<AddQuoteToCollectionCommandHandler>();
+        services.AddScoped<GetCollectionDetailsQueryHandler>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddTransient<IQuoteValidator, QuoteValidator>();
         services.AddSingleton<ITokenService, TokenService>();

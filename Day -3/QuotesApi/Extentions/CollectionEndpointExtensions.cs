@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using QuotesApi.Commands;
 using QuotesApi.Models;
+using QuotesApi.Queries;
 using QuotesApi.Repositories;
 using QuotesApi.Services;
 
@@ -49,6 +50,23 @@ public static class CollectionEndpointExtensions
             return collection is null
                 ? Results.NotFound()
                 : Results.Ok(collection);
+        });
+
+        // The read path: never loads the Collection aggregate or goes
+        // through ICollectionRepository, just asks the query handler for the
+        // exact flat shape this screen needs.
+        app.MapGet("/api/collections/{id:guid}/details", async (
+            Guid id,
+            GetCollectionDetailsQueryHandler handler,
+            CancellationToken cancellationToken) =>
+        {
+            var details = await handler.HandleAsync(
+                new GetCollectionDetailsQuery(id),
+                cancellationToken);
+
+            return details is null
+                ? Results.NotFound()
+                : Results.Ok(details);
         });
 
         app.MapPost("/api/collections/{id:guid}/items", async (
