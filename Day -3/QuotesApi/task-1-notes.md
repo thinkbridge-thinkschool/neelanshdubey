@@ -190,6 +190,23 @@ via a `DbCommandInterceptor`-based counter: the handler issues exactly **1** SQL
 statement and leaves `ChangeTracker.Entries()` empty, for both a populated and
 an empty (`Items.Count == 0`) collection.
 
+## Evidence: hitting both endpoints on localhost
+
+Ran the app (`dotnet run`, `http://localhost:5292`), logged in as the seeded
+test user, created two quotes and a collection, added both quotes to it, then
+hit both endpoints directly in a browser for the same collection id:
+
+- [`screenshots/collection-aggregate-writemodel.png`](screenshots/collection-aggregate-writemodel.png) -
+  `GET /api/collections/{id}` (the write side's own read-back): normalized,
+  `items` only carries `quoteId`/`addedAt` - no quote text or author.
+- [`screenshots/collection-details-readmodel.png`](screenshots/collection-details-readmodel.png) -
+  `GET /api/collections/{id}/details` (the read model): denormalized,
+  `items` carries `quoteText`/`authorName` inlined, plus the flat
+  `collectionName`/`itemCount` a details screen actually wants.
+
+Same collection, same two items, two genuinely different shapes - proof the
+write and read paths are not just the same data serialized twice.
+
 ## What got simpler
 
 The display endpoint no longer needs to know about aggregate invariants,
