@@ -195,12 +195,14 @@ both quotes to it, then hit the new endpoint directly:
 
 - [`screenshots/collection-details-dapper-readmodel.png`](screenshots/collection-details-dapper-readmodel.png) -
   `GET /api/collections/{id}/details/dapper` live on `localhost:5292`,
-  returning the same flattened `CollectionDetailsReadModel` shape as the EF
-  endpoint (`collectionId`, `collectionName`, `itemCount`, and `items` with
-  `quoteId`/`quoteText`/`authorName`/`addedAtUtc` inlined) - byte-for-byte
-  the same JSON the EF `/details` endpoint returned for the same collection
-  in the same run, confirming the two handlers agree outside of the test
-  suite too.
+  returning the flattened `CollectionDetailsReadModel` shape (`collectionId`,
+  `collectionName`, `itemCount`, and `items` with
+  `quoteId`/`quoteText`/`authorName`/`addedAtUtc` inlined).
+- [`screenshots/collection-details-ef-readmodel-task2.png`](screenshots/collection-details-ef-readmodel-task2.png) -
+  `GET /api/collections/{id}/details` (the EF endpoint) for the *same*
+  collection id, hit right after the Dapper screenshot above - byte-for-byte
+  the same JSON, confirming the two handlers agree outside of the test suite
+  too.
 
 ## Part B - Timing comparison
 
