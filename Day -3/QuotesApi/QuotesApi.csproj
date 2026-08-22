@@ -17,4 +17,8 @@
     <PackageReference Include="BCrypt.Net-Next" Version="5.0.0-prerelease.g86f9271e6" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Quotes.Tests.Integration" />
+  </ItemGroup>
+
 </Project>

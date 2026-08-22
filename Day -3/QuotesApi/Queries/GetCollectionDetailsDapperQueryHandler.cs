@@ -14,7 +14,10 @@ namespace QuotesApi.Queries;
 // the flat rows are grouped into CollectionDetailsReadModel by hand below.
 public class GetCollectionDetailsDapperQueryHandler
 {
-    private const string Sql = """
+    // internal (not private) so the benchmark can measure this exact
+    // statement's SQL round-trip count via a raw ADO.NET connection wrapper -
+    // see CollectionReadModelBenchmarkTests's Dapper variant for why.
+    internal const string Sql = """
         SELECT
             c.Id AS CollectionId,
             c.Name AS CollectionName,

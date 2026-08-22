@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using QuotesApi.Data;
@@ -9,12 +10,12 @@ using Xunit.Abstractions;
 
 namespace Quotes.Tests.Integration;
 
-// Part C: proves the write-model path and the read-model path are actually
-// different roads, not just different names for the same query - by timing
-// what a caller who only has the write side available would have to do to
-// render a "collection details" screen (load the tracked aggregate, then
-// fetch each quote one at a time to flatten it) against the read model's
-// single projected query, on a collection with 30 items.
+// Part C (Task 1) proved the write-model path and the read-model path are
+// different roads by timing a naive N+1 flatten against the EF read model.
+// Part B (Task 2) extends that into a three-way comparison: the same naive
+// path (kept for context), the EF projection, and a hand-written Dapper
+// query for the identical "collection details" shape - the actual question
+// this task asks is EF-projection vs Dapper, not naive-vs-anything.
 public class CollectionReadModelBenchmarkTests : IntegrationTestBase
 {
     private const int MeasuredIterations = 5;
@@ -87,6 +88,51 @@ public class CollectionReadModelBenchmarkTests : IntegrationTestBase
         return (model, counter.Count);
     }
 
+    // EF's DbCommandInterceptor never fires for Dapper's calls - confirmed
+    // empirically with a probe: running a Dapper query against the same
+    // connection an interceptor-wired AppDbContext was watching left
+    // counter.Count at 0, because Dapper calls CreateCommand()/ExecuteReader
+    // directly on the connection and never touches EF's RelationalCommand
+    // pipeline the interceptor hooks into. The alternative - wrapping the
+    // connection in a full EF AppDbContext (UseSqlite(proxyConnection)) so
+    // the interceptor has something EF-shaped to watch - was also measured:
+    // a single such call took over 5 minutes (EF's Sqlite provider behaves
+    // pathologically when handed a non-SqliteConnection DbConnection), which
+    // would make the timed loop meaningless. CountingDbConnection instead
+    // counts at the raw ADO.NET level with no EF involved at all - confirmed
+    // fast (low tens of ms) - run directly against the handler's own SQL
+    // text (GetCollectionDetailsDapperQueryHandler.Sql, made internal for
+    // exactly this). The handler issues that one static statement with no
+    // per-item loop, so the count can't vary by item count or iteration;
+    // it's measured once per test run rather than re-proving it on every
+    // timed call, the same invariant the EF variant's count already relies
+    // on (always 1, regardless of collection size).
+    private static async Task<int> MeasureDapperQueryCountAsync(
+        DbContextOptions<AppDbContext> options,
+        Guid collectionId)
+    {
+        using var db = new AppDbContext(options);
+        var counting = new CountingDbConnection(db.Database.GetDbConnection());
+
+        await counting.QueryAsync(
+            GetCollectionDetailsDapperQueryHandler.Sql,
+            new { CollectionId = collectionId });
+
+        return counting.Count;
+    }
+
+    private static async Task<(CollectionDetailsReadModel Model, int QueryCount)> LoadViaDapperReadModelAsync(
+        DbContextOptions<AppDbContext> options,
+        Guid collectionId,
+        int measuredQueryCount)
+    {
+        using var db = new AppDbContext(options);
+        var handler = new GetCollectionDetailsDapperQueryHandler(db);
+
+        var model = await handler.HandleAsync(new GetCollectionDetailsDapperQuery(collectionId), CancellationToken.None);
+        return (model!, measuredQueryCount);
+    }
+
     private readonly ITestOutputHelper _output;
 
     public CollectionReadModelBenchmarkTests(ITestOutputHelper output)
@@ -94,48 +140,67 @@ public class CollectionReadModelBenchmarkTests : IntegrationTestBase
         _output = output;
     }
 
-    [Fact]
-    public async Task Benchmark_30ItemCollection_ReadModelIsOneQueryAggregateFlattenIsNPlus1()
+    // 30 items matches Task 1's benchmark size; 50 - the write model's own
+    // cap (Collection.AddItem throws DomainException past 50 items, so 200
+    // isn't reachable through the real write path at all) - is included
+    // because the gap between EF and Dapper, unlike the read-model-vs-naive
+    // gap, is small enough at 30 items that it can be noise, and the
+    // largest collection the domain allows is where a real per-query
+    // overhead difference would most plausibly show up.
+    [Theory]
+    [InlineData(30)]
+    [InlineData(50)]
+    public async Task Benchmark_CollectionDetails_EfVsDapperVsNaive(int itemCount)
     {
         var tokens = await LoginAsync();
-        const int itemCount = 30;
         var collectionId = await SeedCollectionWithItemsAsync(tokens.AccessToken, itemCount);
 
         var baseOptions = Factory.Services.GetRequiredService<DbContextOptions<AppDbContext>>();
+
+        var dapperQueryCount = await MeasureDapperQueryCountAsync(baseOptions, collectionId);
 
         // Warmup (discarded): pays for query-plan caching so it doesn't
         // pollute the measured runs, same as the Day 10 AsNoTracking benchmark.
         await LoadAggregateAndFlattenManuallyAsync(baseOptions, collectionId);
         await LoadViaReadModelAsync(baseOptions, collectionId);
+        await LoadViaDapperReadModelAsync(baseOptions, collectionId, dapperQueryCount);
 
         var naive = await RunBenchmarkAsync(
             "Load aggregate + manual flatten (N+1)",
             () => LoadAggregateAndFlattenManuallyAsync(baseOptions, collectionId));
 
-        var readModel = await RunBenchmarkAsync(
-            "Read model (projected, single query)",
+        var efReadModel = await RunBenchmarkAsync(
+            "EF read model (projected, single query)",
             async () =>
             {
                 var (model, queryCount) = await LoadViaReadModelAsync(baseOptions, collectionId);
                 return (model!, queryCount);
             });
 
+        var dapperReadModel = await RunBenchmarkAsync(
+            "Dapper read model (raw SQL, single query)",
+            () => LoadViaDapperReadModelAsync(baseOptions, collectionId, dapperQueryCount));
+
         _output.WriteLine("");
         _output.WriteLine($"-- Collection details, {itemCount} items, {MeasuredIterations} measured iterations (1 warmup discarded) --");
         _output.WriteLine($"{"Variant",-42}{"Avg ms",10}{"SQL queries",14}");
         _output.WriteLine(new string('-', 66));
-        foreach (var r in new[] { naive, readModel })
+        foreach (var r in new[] { naive, efReadModel, dapperReadModel })
         {
             _output.WriteLine($"{r.Label,-42}{r.AvgMs,10:F2}{r.QueryCount,14}");
         }
 
-        // The read model's query count never changes with N; the naive path
-        // always does 1 (collection) + N (one per item) round trips.
-        Assert.Equal(1, readModel.QueryCount);
+        // Query counts are fixed regardless of item count for both
+        // single-statement variants; the naive path is always 1 + itemCount.
+        Assert.Equal(1, efReadModel.QueryCount);
+        Assert.Equal(1, dapperReadModel.QueryCount);
         Assert.Equal(itemCount + 1, naive.QueryCount);
         Assert.True(
-            readModel.AvgMs < naive.AvgMs,
-            $"Expected the single-query read model ({readModel.AvgMs:F2}ms) to beat the {itemCount + 1}-query naive flatten ({naive.AvgMs:F2}ms).");
+            efReadModel.AvgMs < naive.AvgMs,
+            $"Expected the EF read model ({efReadModel.AvgMs:F2}ms) to beat the {itemCount + 1}-query naive flatten ({naive.AvgMs:F2}ms).");
+        Assert.True(
+            dapperReadModel.AvgMs < naive.AvgMs,
+            $"Expected the Dapper read model ({dapperReadModel.AvgMs:F2}ms) to beat the {itemCount + 1}-query naive flatten ({naive.AvgMs:F2}ms).");
     }
 
     private static async Task<BenchmarkResult> RunBenchmarkAsync(
