@@ -21,7 +21,7 @@ public class CollectionEndpointsTests : IntegrationTestBase
 {
     private sealed record CollectionResponse(Guid Id, string Name, int OwnerId, List<CollectionItemResponse> Items);
 
-    private sealed record CollectionItemResponse(Guid QuoteId, DateTimeOffset AddedAt);
+    private sealed record CollectionItemResponse(int QuoteId, DateTimeOffset AddedAt);
 
     private async Task<CollectionResponse> CreateCollectionAsync(string accessToken, string name = "Stoic Favorites")
     {
@@ -56,17 +56,17 @@ public class CollectionEndpointsTests : IntegrationTestBase
     {
         var tokens = await LoginAsync();
         var collection = await CreateCollectionAsync(tokens.AccessToken);
-        var quoteId = Guid.NewGuid();
+        var quote = await CreateQuoteAsync(tokens.AccessToken);
 
         var request = AuthorizedRequest(HttpMethod.Post, $"/api/collections/{collection.Id}/items", tokens.AccessToken);
-        request.Content = JsonContent.Create(new AddCollectionItemRequest(quoteId));
+        request.Content = JsonContent.Create(new AddCollectionItemRequest(quote.Id));
 
         var response = await Client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var updated = await response.Content.ReadFromJsonAsync<CollectionResponse>();
-        Assert.Contains(updated!.Items, i => i.QuoteId == quoteId);
+        Assert.Contains(updated!.Items, i => i.QuoteId == quote.Id);
     }
 
     [Fact]
@@ -77,15 +77,18 @@ public class CollectionEndpointsTests : IntegrationTestBase
 
         for (var i = 0; i < 50; i++)
         {
+            var quote = await CreateQuoteAsync(tokens.AccessToken, text: $"Quote number {i}");
+
             var addRequest = AuthorizedRequest(HttpMethod.Post, $"/api/collections/{collection.Id}/items", tokens.AccessToken);
-            addRequest.Content = JsonContent.Create(new AddCollectionItemRequest(Guid.NewGuid()));
+            addRequest.Content = JsonContent.Create(new AddCollectionItemRequest(quote.Id));
 
             var addResponse = await Client.SendAsync(addRequest);
             addResponse.EnsureSuccessStatusCode();
         }
 
+        var overLimitQuote = await CreateQuoteAsync(tokens.AccessToken, text: "One too many");
         var overLimitRequest = AuthorizedRequest(HttpMethod.Post, $"/api/collections/{collection.Id}/items", tokens.AccessToken);
-        overLimitRequest.Content = JsonContent.Create(new AddCollectionItemRequest(Guid.NewGuid()));
+        overLimitRequest.Content = JsonContent.Create(new AddCollectionItemRequest(overLimitQuote.Id));
 
         var response = await Client.SendAsync(overLimitRequest);
 
@@ -103,14 +106,14 @@ public class CollectionEndpointsTests : IntegrationTestBase
     {
         var tokens = await LoginAsync();
         var collection = await CreateCollectionAsync(tokens.AccessToken);
-        var quoteId = Guid.NewGuid();
+        var quote = await CreateQuoteAsync(tokens.AccessToken);
 
         var firstRequest = AuthorizedRequest(HttpMethod.Post, $"/api/collections/{collection.Id}/items", tokens.AccessToken);
-        firstRequest.Content = JsonContent.Create(new AddCollectionItemRequest(quoteId));
+        firstRequest.Content = JsonContent.Create(new AddCollectionItemRequest(quote.Id));
         (await Client.SendAsync(firstRequest)).EnsureSuccessStatusCode();
 
         var secondRequest = AuthorizedRequest(HttpMethod.Post, $"/api/collections/{collection.Id}/items", tokens.AccessToken);
-        secondRequest.Content = JsonContent.Create(new AddCollectionItemRequest(quoteId));
+        secondRequest.Content = JsonContent.Create(new AddCollectionItemRequest(quote.Id));
         var response = await Client.SendAsync(secondRequest);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -124,20 +127,20 @@ public class CollectionEndpointsTests : IntegrationTestBase
     {
         var tokens = await LoginAsync();
         var collection = await CreateCollectionAsync(tokens.AccessToken);
-        var quoteId = Guid.NewGuid();
+        var quote = await CreateQuoteAsync(tokens.AccessToken);
 
         var addRequest = AuthorizedRequest(HttpMethod.Post, $"/api/collections/{collection.Id}/items", tokens.AccessToken);
-        addRequest.Content = JsonContent.Create(new AddCollectionItemRequest(quoteId));
+        addRequest.Content = JsonContent.Create(new AddCollectionItemRequest(quote.Id));
         (await Client.SendAsync(addRequest)).EnsureSuccessStatusCode();
 
         var deleteResponse = await Client.SendAsync(
-            AuthorizedRequest(HttpMethod.Delete, $"/api/collections/{collection.Id}/items/{quoteId}", tokens.AccessToken));
+            AuthorizedRequest(HttpMethod.Delete, $"/api/collections/{collection.Id}/items/{quote.Id}", tokens.AccessToken));
 
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
         var getResponse = await Client.GetAsync($"/api/collections/{collection.Id}");
         var fetched = await getResponse.Content.ReadFromJsonAsync<CollectionResponse>();
-        Assert.DoesNotContain(fetched!.Items, i => i.QuoteId == quoteId);
+        Assert.DoesNotContain(fetched!.Items, i => i.QuoteId == quote.Id);
     }
 
     [Fact]
@@ -147,7 +150,7 @@ public class CollectionEndpointsTests : IntegrationTestBase
         var collection = await CreateCollectionAsync(tokens.AccessToken);
 
         var response = await Client.SendAsync(
-            AuthorizedRequest(HttpMethod.Delete, $"/api/collections/{collection.Id}/items/{Guid.NewGuid()}", tokens.AccessToken));
+            AuthorizedRequest(HttpMethod.Delete, $"/api/collections/{collection.Id}/items/999999", tokens.AccessToken));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -160,11 +163,12 @@ public class CollectionEndpointsTests : IntegrationTestBase
     {
         var owner = await LoginAsync();
         var collection = await CreateCollectionAsync(owner.AccessToken);
+        var quote = await CreateQuoteAsync(owner.AccessToken);
 
         var otherUserTokens = await RegisterAndLoginOtherUserAsync();
 
         var request = AuthorizedRequest(HttpMethod.Post, $"/api/collections/{collection.Id}/items", otherUserTokens.AccessToken);
-        request.Content = JsonContent.Create(new AddCollectionItemRequest(Guid.NewGuid()));
+        request.Content = JsonContent.Create(new AddCollectionItemRequest(quote.Id));
 
         var response = await Client.SendAsync(request);
 

@@ -1,3 +1,3 @@
 namespace QuotesApi.Models;
 
-public sealed record CollectionItem(Guid QuoteId, DateTimeOffset AddedAt);
+public sealed record CollectionItem(int QuoteId, DateTimeOffset AddedAt);

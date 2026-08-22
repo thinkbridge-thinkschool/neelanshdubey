@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using QuotesApi.Commands;
 using QuotesApi.Data;
 using QuotesApi.Models;
 using QuotesApi.Repositories;
@@ -33,6 +34,7 @@ public static class InfrastructureExtensions
 
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddScoped<ICollectionRepository, CollectionRepository>();
+        services.AddScoped<AddQuoteToCollectionCommandHandler>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddTransient<IQuoteValidator, QuoteValidator>();
         services.AddSingleton<ITokenService, TokenService>();

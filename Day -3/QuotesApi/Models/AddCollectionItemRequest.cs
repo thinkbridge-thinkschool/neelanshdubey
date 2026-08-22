@@ -1,3 +1,3 @@
 namespace QuotesApi.Models;
 
-public record AddCollectionItemRequest(Guid QuoteId);
+public record AddCollectionItemRequest(int QuoteId);

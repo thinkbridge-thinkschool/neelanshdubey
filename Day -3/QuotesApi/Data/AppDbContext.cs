@@ -33,6 +33,15 @@ public class AppDbContext : DbContext
                 items.WithOwner().HasForeignKey("CollectionId");
                 items.Property<Guid>("CollectionId");
                 items.HasKey("CollectionId", nameof(CollectionItem.QuoteId));
+
+                // A DB-level FK to Quotes without a Quote navigation property
+                // on CollectionItem - Collection stays a normalized aggregate
+                // that only ever knows a QuoteId, never a Quote reference,
+                // while the database still enforces that the id is real.
+                items.HasOne<Quote>()
+                    .WithMany()
+                    .HasForeignKey(i => i.QuoteId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             collection.Navigation(c => c.Items)
