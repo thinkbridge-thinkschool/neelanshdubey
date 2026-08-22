@@ -207,6 +207,11 @@ hit both endpoints directly in a browser for the same collection id:
 Same collection, same two items, two genuinely different shapes - proof the
 write and read paths are not just the same data serialized twice.
 
+Re-ran the app a second time to reconfirm against a fresh collection (3
+quotes this time): [`screenshots/localhost-collection-details-live.png`](screenshots/localhost-collection-details-live.png)
+shows `GET /api/collections/{id}/details` live on `localhost:5292` returning
+all three quotes with `quoteText`/`authorName` inlined.
+
 ## What got simpler
 
 The display endpoint no longer needs to know about aggregate invariants,
