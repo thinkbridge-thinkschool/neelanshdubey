@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
+using QuotesApi.Commands;
 using QuotesApi.Models;
+using QuotesApi.Queries;
 using QuotesApi.Repositories;
 using QuotesApi.Services;
 
@@ -50,13 +52,30 @@ public static class CollectionEndpointExtensions
                 : Results.Ok(collection);
         });
 
+        // The read path: never loads the Collection aggregate or goes
+        // through ICollectionRepository, just asks the query handler for the
+        // exact flat shape this screen needs.
+        app.MapGet("/api/collections/{id:guid}/details", async (
+            Guid id,
+            GetCollectionDetailsQueryHandler handler,
+            CancellationToken cancellationToken) =>
+        {
+            var details = await handler.HandleAsync(
+                new GetCollectionDetailsQuery(id),
+                cancellationToken);
+
+            return details is null
+                ? Results.NotFound()
+                : Results.Ok(details);
+        });
+
         app.MapPost("/api/collections/{id:guid}/items", async (
             Guid id,
             AddCollectionItemRequest request,
             HttpContext httpContext,
             ICollectionRepository repository,
             IAuthorizationService authorizationService,
-            IClock clock,
+            AddQuoteToCollectionCommandHandler handler,
             CancellationToken cancellationToken) =>
         {
             var collection = await repository.GetByIdAsync(
@@ -78,19 +97,25 @@ public static class CollectionEndpointExtensions
                 return Results.Forbid();
             }
 
-            // AddItem enforces the max-items and no-duplicates invariants
-            // itself and throws DomainException on violation; the endpoint
-            // never touches the owned CollectionItem collection directly.
-            collection.AddItem(request.QuoteId, clock);
+            // The command handler owns loading the aggregate, enforcing
+            // AddItem's invariants, and persisting - the endpoint's only job
+            // is auth plus translating the command result into a response.
+            // This means the aggregate is fetched twice per request (once
+            // here so AuthorizeAsync has a Collection resource to check
+            // ownership against, once inside the handler): a deliberate
+            // trade-off so the handler stays independently usable/testable
+            // without ever assuming a pre-loaded, already-authorized
+            // aggregate was handed to it.
+            var updated = await handler.HandleAsync(
+                new AddQuoteToCollectionCommand(id, request.QuoteId),
+                cancellationToken);
 
-            await repository.UpdateAsync(collection, cancellationToken);
-
-            return Results.Ok(collection);
+            return Results.Ok(updated);
         }).RequireAuthorization();
 
-        app.MapDelete("/api/collections/{id:guid}/items/{quoteId:guid}", async (
+        app.MapDelete("/api/collections/{id:guid}/items/{quoteId:int}", async (
             Guid id,
-            Guid quoteId,
+            int quoteId,
             HttpContext httpContext,
             ICollectionRepository repository,
             IAuthorizationService authorizationService,
