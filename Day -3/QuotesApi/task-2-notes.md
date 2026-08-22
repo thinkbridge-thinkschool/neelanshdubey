@@ -203,6 +203,11 @@ both quotes to it, then hit the new endpoint directly:
   collection id, hit right after the Dapper screenshot above - byte-for-byte
   the same JSON, confirming the two handlers agree outside of the test suite
   too.
+- [`screenshots/localhost-collection-details-dapper-live-fullscreen.png`](screenshots/localhost-collection-details-dapper-live-fullscreen.png) -
+  a real, visible Chrome window (address bar included) navigated to
+  `localhost:5292/api/collections/{id}/details/dapper`, captured via an
+  actual full-screen screen grab rather than a headless render, showing the
+  same response live on-screen.
 
 ## Part B - Timing comparison
 
