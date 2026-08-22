@@ -187,6 +187,21 @@ cases and the HTTP endpoint end-to-end. This is what justifies trusting the
 timing numbers below - a faster handler that returned the wrong shape
 wouldn't be worth measuring.
 
+## Evidence: hitting the Dapper endpoint on localhost
+
+Ran the app (`dotnet run`, `http://localhost:5292`), logged in as the seeded
+test user, created two quotes and a collection ("Task 2 Dapper Demo"), added
+both quotes to it, then hit the new endpoint directly:
+
+- [`screenshots/collection-details-dapper-readmodel.png`](screenshots/collection-details-dapper-readmodel.png) -
+  `GET /api/collections/{id}/details/dapper` live on `localhost:5292`,
+  returning the same flattened `CollectionDetailsReadModel` shape as the EF
+  endpoint (`collectionId`, `collectionName`, `itemCount`, and `items` with
+  `quoteId`/`quoteText`/`authorName`/`addedAtUtc` inlined) - byte-for-byte
+  the same JSON the EF `/details` endpoint returned for the same collection
+  in the same run, confirming the two handlers agree outside of the test
+  suite too.
+
 ## Part B - Timing comparison
 
 [`CollectionReadModelBenchmarkTests.cs`](../Quotes.Tests.Integration/CollectionReadModelBenchmarkTests.cs)
