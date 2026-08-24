@@ -44,6 +44,61 @@ public static class AuthEndpointExtensions
             });
         });
 
+        app.MapPost("/api/auth/register", async (
+            RegisterRequest request,
+            AppDbContext dbContext,
+            ITokenService tokenService,
+            IRefreshTokenService refreshTokenService,
+            ILogger<Program> logger) =>
+        {
+            var email = request.Email.Trim();
+            var password = request.Password;
+
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["email"] = ["A valid email is required."]
+                });
+            }
+
+            if (password.Length < 8)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["password"] = ["Password must be at least 8 characters."]
+                });
+            }
+
+            var alreadyExists = await dbContext.Users.AnyAsync(u => u.Email == email);
+
+            if (alreadyExists)
+            {
+                logger.LogWarning("Registration failed: {Email} is already registered", email);
+                return Results.Conflict(new { message = "An account with that email already exists." });
+            }
+
+            var user = new User
+            {
+                Email = email,
+                PasswordHash = BCryptNet.BCrypt.HashPassword(password)
+            };
+
+            dbContext.Users.Add(user);
+            await dbContext.SaveChangesAsync();
+
+            var accessToken = tokenService.CreateAccessToken(user);
+            var refreshToken = await refreshTokenService.CreateRefreshTokenAsync(user);
+
+            logger.LogInformation("Registered new user {UserId}", user.Id);
+
+            return Results.Ok(new TokenResponse
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            });
+        });
+
         app.MapPost("/api/auth/refresh", async (
             RefreshRequest request,
             IRefreshTokenService refreshTokenService,

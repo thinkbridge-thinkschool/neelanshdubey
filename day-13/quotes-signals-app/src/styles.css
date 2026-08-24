@@ -1,0 +1,33 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* Shared dark theme tokens for the app. Every component reads colors
+   exclusively through these custom properties, so this is the one place
+   the whole theme lives. */
+:root {
+  --color-bg: #0e1015;
+  --color-surface: #171a22;
+  --color-border: #2a2e3a;
+  --color-text: #eef0f5;
+  --color-text-muted: #9aa0ae;
+  --color-primary: #5b8cff;
+  --color-primary-hover: #7ea0ff;
+  --color-danger: #f87171;
+  --color-danger-bg: rgba(248, 113, 113, 0.14);
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Inter,
+    sans-serif;
+}
