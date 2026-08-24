@@ -28,7 +28,7 @@ public class Collection
         OwnerId = ownerId;
     }
 
-    public void AddItem(Guid quoteId, IClock clock)
+    public void AddItem(int quoteId, IClock clock)
     {
         if (_items.Count >= MaxItems)
             throw new DomainException($"A collection cannot contain more than {MaxItems} items.");
@@ -42,7 +42,7 @@ public class Collection
     // Throws rather than no-ops: removing something that was never there is
     // treated as caller error, consistent with AddItem's other invariants
     // failing loudly instead of silently doing nothing.
-    public void RemoveItem(Guid quoteId)
+    public void RemoveItem(int quoteId)
     {
         var item = _items.FirstOrDefault(i => i.QuoteId == quoteId);
 

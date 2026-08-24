@@ -98,7 +98,7 @@ public class CollectionTests
     {
         // Arrange
         var collection = new Collection("My Collection", 1);
-        var quoteId = Guid.NewGuid();
+        var quoteId = 101;
         var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var clock = FixedClock(now);
 
@@ -116,7 +116,7 @@ public class CollectionTests
     {
         // Arrange
         var collection = new Collection("My Collection", 1);
-        var quoteId = Guid.NewGuid();
+        var quoteId = 101;
         var clock = FixedClock(DateTimeOffset.UtcNow);
         collection.AddItem(quoteId, clock);
 
@@ -137,11 +137,11 @@ public class CollectionTests
 
         for (var i = 0; i < 50; i++)
         {
-            collection.AddItem(Guid.NewGuid(), clock);
+            collection.AddItem(i, clock);
         }
 
         // Act
-        var act = () => collection.AddItem(Guid.NewGuid(), clock);
+        var act = () => collection.AddItem(50, clock);
 
         // Assert
         act.Should().Throw<DomainException>().WithMessage("A collection cannot contain more than 50 items.");
@@ -153,7 +153,7 @@ public class CollectionTests
     {
         // Arrange
         var collection = new Collection("My Collection", 1);
-        var quoteId = Guid.NewGuid();
+        var quoteId = 101;
         var clock = FixedClock(DateTimeOffset.UtcNow);
         collection.AddItem(quoteId, clock);
 
@@ -171,7 +171,7 @@ public class CollectionTests
         var collection = new Collection("My Collection", 1);
 
         // Act
-        var act = () => collection.RemoveItem(Guid.NewGuid());
+        var act = () => collection.RemoveItem(999);
 
         // Assert
         act.Should().Throw<DomainException>().WithMessage("This quote is not in the collection.");
