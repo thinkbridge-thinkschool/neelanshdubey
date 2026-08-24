@@ -1,0 +1,2 @@
+Projection: 500 summaries, query count: 1
+Split query: 500 authors, query count: 2
