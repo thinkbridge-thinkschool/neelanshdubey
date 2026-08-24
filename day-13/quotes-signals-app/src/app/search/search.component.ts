@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { Quote } from '../models/quote.model';
 import { toUserMessage } from '../shared/http-error.util';
@@ -26,7 +26,7 @@ function readFavorites(email: string | null): ReadonlySet<number> {
 
 @Component({
   selector: 'app-search',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './search.component.html',
   styleUrl: './search.component.scss',
 })

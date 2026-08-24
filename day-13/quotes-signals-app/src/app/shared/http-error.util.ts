@@ -29,3 +29,29 @@ export function toUserMessage(err: unknown, fallback: string): string {
       return fallback;
   }
 }
+
+/**
+ * Renders the real HTTP status and server-provided message, for surfaces
+ * (quotes list/detail) that intentionally show the raw failure instead of a
+ * generic one — there's no sensitive data in these responses since the
+ * quotes collection is public read.
+ */
+export function toRawErrorMessage(err: unknown): string {
+  if (!(err instanceof HttpErrorResponse)) {
+    return 'Something went wrong.';
+  }
+
+  if (err.status === 0) {
+    return 'Unable to reach the API. Please check that it is running.';
+  }
+
+  // Results.NotFound()/Forbid()/Unauthorized() send an empty body (verified
+  // against the live API: content-length 0), so there's often no `title` to
+  // show. Falling back to err.message here would print Angular's synthesized
+  // "Http failure response for <url>: 404 Not Found" — a garbled duplicate of
+  // the status line already shown. Drop the trailing part instead.
+  const body = err.error as { title?: string } | null;
+  const statusLine = `${err.status} ${err.statusText}`;
+
+  return body?.title ? `${statusLine}: ${body.title}` : statusLine;
+}

@@ -13,6 +13,15 @@ export interface Quote {
   createdAt: string;
   ownerId: number;
   ownerEmail?: string | null;
+  /**
+   * Only present on the GET /api/quotes/{id} raw-entity response (Quote.cs
+   * has a public getter), never on the GET /api/quotes list projection.
+   * In practice this is always false: DELETE /api/quotes/{id} hard-deletes
+   * the row (QuoteRepository.DeleteAsync), and nothing ever calls
+   * Quote.SoftDelete(). Kept optional and typed rather than silently
+   * dropped, since it's still a real field on the wire.
+   */
+  isDeleted?: boolean;
 }
 
 /** Body shape for POST /api/quotes (QuotesApi.Models.CreateQuoteRequest). */

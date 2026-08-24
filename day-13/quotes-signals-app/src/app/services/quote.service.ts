@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { CreateQuoteRequest, Quote, UpdateQuoteRequest } from '../models/quote.model';
 import { AuthService } from './auth.service';
 
@@ -50,6 +50,15 @@ export class QuoteService {
 
   getQuote(id: number): Promise<Quote> {
     return firstValueFrom(this.http.get<Quote>(`/api/quotes/${id}`));
+  }
+
+  /**
+   * Same request as getQuote(), returned as a cold Observable instead of a
+   * Promise so a caller chaining it through switchMap (QuoteDetailComponent)
+   * can cancel an in-flight request when a newer id is selected.
+   */
+  getQuoteById$(id: number): Observable<Quote> {
+    return this.http.get<Quote>(`/api/quotes/${id}`);
   }
 
   createQuote(request: CreateQuoteRequest): Promise<Quote> {
