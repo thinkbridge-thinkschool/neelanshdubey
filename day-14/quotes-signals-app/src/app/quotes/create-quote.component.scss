@@ -188,3 +188,17 @@ form {
     color: var(--color-primary-hover);
   }
 }
+
+.variant-switch {
+  margin: 24px 0 0;
+  font-size: 13px;
+
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--color-primary-hover);
+    }
+  }
+}

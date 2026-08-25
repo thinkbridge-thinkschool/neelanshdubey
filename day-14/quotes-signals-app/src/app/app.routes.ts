@@ -28,5 +28,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./quotes/create-quote.component').then((m) => m.CreateQuoteComponent),
   },
+  {
+    path: 'quotes/new-signal',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./quotes/create-quote-signal.component').then((m) => m.CreateQuoteSignalComponent),
+  },
   { path: '**', redirectTo: '' },
 ];
