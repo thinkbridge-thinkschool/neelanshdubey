@@ -1,0 +1,88 @@
+<div class="login-shell">
+  <section class="brand-panel">
+    <span class="brand-mark-giant" aria-hidden="true">&ldquo;</span>
+    <span class="brand-star brand-star--1" aria-hidden="true"></span>
+    <span class="brand-star brand-star--2" aria-hidden="true"></span>
+    <span class="brand-star brand-star--3" aria-hidden="true"></span>
+
+    <div class="brand-content">
+      <span class="logo-mark" aria-hidden="true">Q</span>
+      <h1 class="brand-name">QUOTES COLLECTION</h1>
+      <p class="brand-tagline">Quotes, curated.</p>
+    </div>
+  </section>
+
+  <section class="form-panel">
+    <div class="form-card">
+      <h2 class="form-title">{{ mode() === 'login' ? 'Sign in' : 'Create account' }}</h2>
+
+      @if (authError()) {
+        <p class="error-banner" role="alert">{{ authError() }}</p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <label class="field">
+          Email
+          <input
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            [class.field-invalid]="isInvalid('email')"
+          />
+          @if (isInvalid('email')) {
+            <span class="field-error">
+              {{ form.controls.email.errors?.['required'] ? 'Email is required.' : 'Enter a valid email address.' }}
+            </span>
+          }
+        </label>
+
+        <label class="field">
+          Password
+          <input
+            type="password"
+            formControlName="password"
+            autocomplete="current-password"
+            [class.field-invalid]="isInvalid('password')"
+          />
+          @if (isInvalid('password')) {
+            <span class="field-error">
+              {{
+                form.controls.password.errors?.['required']
+                  ? 'Password is required.'
+                  : 'Password must be at least ' + passwordMinLength() + ' characters.'
+              }}
+            </span>
+          }
+        </label>
+
+        @if (mode() === 'login') {
+          <div class="field-row">
+            <label class="checkbox-field">
+              <input type="checkbox" formControlName="rememberMe" />
+              Remember me
+            </label>
+
+            <button type="button" class="link-button" (click)="onForgotPassword()">Forgot password?</button>
+          </div>
+        }
+
+        @if (forgotPasswordNotice()) {
+          <p class="notice">{{ forgotPasswordNotice() }}</p>
+        }
+
+        <button type="button" class="link-button mode-switch" (click)="switchMode(mode() === 'login' ? 'register' : 'login')">
+          {{ mode() === 'login' ? "Don't have an account? Create one" : 'Already have an account? Sign in' }}
+        </button>
+
+        <button type="submit" class="submit-button" [disabled]="authenticating()">
+          @if (authenticating()) {
+            <span class="spinner" aria-hidden="true"></span>
+            {{ mode() === 'login' ? 'Signing in…' : 'Creating account…' }}
+          } @else {
+            {{ mode() === 'login' ? 'Sign in' : 'Create account' }}
+          }
+        </button>
+      </form>
+    </div>
+  </section>
+</div>
