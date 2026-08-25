@@ -104,7 +104,12 @@ form {
   padding: 12px;
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-primary);
+  // var(--color-primary) (#5b8cff) against white text is only a 3.16:1
+  // contrast ratio — fails WCAG AA's 4.5:1 minimum for 15px bold text
+  // (confirmed by an axe-core scan in a11y-audit/). This darker shade of
+  // the same hue clears 5.3:1 without changing the brand color everywhere
+  // it's used elsewhere in the app.
+  background: #3f66c9;
   color: #ffffff;
   font: inherit;
   font-weight: 700;
@@ -113,7 +118,7 @@ form {
   transition: background-color 180ms ease;
 
   &:hover:not(:disabled) {
-    background: var(--color-primary-hover);
+    background: #4a72d1;
   }
 
   &:disabled {
