@@ -224,7 +224,10 @@ form {
   padding: 12px;
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-primary);
+  // var(--color-primary) against white text is only 3.16:1, below WCAG
+  // AA's 4.5:1 minimum (caught by axe-core) — the "-strong" variant is a
+  // darker shade of the same hue meant for solid-fill + white-text.
+  background: var(--color-primary-strong);
   color: #ffffff;
   font: inherit;
   font-weight: 700;
@@ -233,7 +236,7 @@ form {
   transition: background-color 180ms ease;
 
   &:hover:not(:disabled) {
-    background: var(--color-primary-hover);
+    background: var(--color-primary-strong-hover);
   }
 
   &:disabled {

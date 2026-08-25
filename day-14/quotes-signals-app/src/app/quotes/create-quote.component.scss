@@ -104,12 +104,12 @@ form {
   padding: 12px;
   border-radius: var(--radius-md);
   border: none;
-  // var(--color-primary) (#5b8cff) against white text is only a 3.16:1
-  // contrast ratio — fails WCAG AA's 4.5:1 minimum for 15px bold text
-  // (confirmed by an axe-core scan in a11y-audit/). This darker shade of
-  // the same hue clears 5.3:1 without changing the brand color everywhere
-  // it's used elsewhere in the app.
-  background: #3f66c9;
+  // var(--color-primary) against white text is only 3.16:1, below WCAG
+  // AA's 4.5:1 minimum (caught by axe-core) — the "-strong" variant is a
+  // darker shade of the same hue meant for solid-fill + white-text (now
+  // promoted to styles.css since the same issue turned up on .avatar,
+  // .filter-item--active, .primary-button, and login's .submit-button).
+  background: var(--color-primary-strong);
   color: #ffffff;
   font: inherit;
   font-weight: 700;
@@ -118,7 +118,7 @@ form {
   transition: background-color 180ms ease;
 
   &:hover:not(:disabled) {
-    background: #4a72d1;
+    background: var(--color-primary-strong-hover);
   }
 
   &:disabled {
