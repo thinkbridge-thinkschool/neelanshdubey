@@ -1,0 +1,24 @@
+[33m❯[39m Building...
+[32m✔[39m Building...
+[1mInitial chunk files[22m[2m | [22m[1mNames[22m                      [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-BD2SNFLU.js[39m  [2m | [22m[2m-[22m                          [2m | [22m[36m256.94 kB[39m[2m | [22m               [36m69.88 kB[39m
+[32mchunk-EK5RW3S2.js[39m  [2m | [22m[2m-[22m                          [2m | [22m  [36m2.27 kB[39m[2m | [22m              [36m839 bytes[39m
+[32mmain-OJVLX74N.js[39m   [2m | [22m[2mmain[22m                       [2m | [22m  [36m1.91 kB[39m[2m | [22m              [36m852 bytes[39m
+[32mchunk-6FDSHNKS.js[39m  [2m | [22m[2m-[22m                          [2m | [22m  [36m1.10 kB[39m[2m | [22m              [36m551 bytes[39m
+[32mstyles-J2GPIJHB.css[39m[2m | [22m[2mstyles[22m                     [2m | [22m[36m523 bytes[39m[2m | [22m              [36m523 bytes[39m
+
+[1m [22m                  [2m | [22m[1mInitial total[22m              [2m | [22m[1m262.74 kB[22m[2m | [22m               [1m72.64 kB[22m
+
+[1mLazy chunk files[22m   [2m | [22m[1mNames[22m                      [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-MPRP74PL.js[39m  [2m | [22m[2m-[22m                          [2m | [22m [36m35.17 kB[39m[2m | [22m                [36m7.53 kB[39m
+[32mchunk-F62XQFRG.js[39m  [2m | [22m[2msearch-component[22m           [2m | [22m [36m21.45 kB[39m[2m | [22m                [36m5.36 kB[39m
+[32mchunk-A22RFTUM.js[39m  [2m | [22m[2mlogin-component[22m            [2m | [22m  [36m9.24 kB[39m[2m | [22m                [36m2.71 kB[39m
+[32mchunk-UP7O4WIK.js[39m  [2m | [22m[2mcreate-quote-component[22m     [2m | [22m  [36m8.83 kB[39m[2m | [22m                [36m2.60 kB[39m
+[32mchunk-FYWUY72P.js[39m  [2m | [22m[2mquote-detail-page-component[22m[2m | [22m  [36m3.77 kB[39m[2m | [22m                [36m1.33 kB[39m
+[32mchunk-FQJATQJX.js[39m  [2m | [22m[2mquotes-list-component[22m      [2m | [22m  [36m3.75 kB[39m[2m | [22m                [36m1.33 kB[39m
+[32mchunk-4UGMSG7O.js[39m  [2m | [22m[2m-[22m                          [2m | [22m[36m716 bytes[39m[2m | [22m              [36m716 bytes[39m
+
+Application bundle generation complete. [15.424 seconds] - 2026-08-27T06:08:14.821Z
+
+Output location: C:\Users\HP\OneDrive\Desktop\thinkschool\day-16\quotes-signals-app\dist\quotes-signals-app
+

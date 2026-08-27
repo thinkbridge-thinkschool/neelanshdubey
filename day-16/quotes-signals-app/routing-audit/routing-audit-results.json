@@ -1,0 +1,46 @@
+{
+  "runId": "s6pxux",
+  "testEmail": "routing-audit-s6pxux@example.com",
+  "checks": [
+    {
+      "name": "unauthenticated /quotes/123 -> redirected to /login",
+      "pass": true,
+      "detail": "landed on /login"
+    },
+    {
+      "name": "no quote-detail-page-* chunk requested while on /quotes",
+      "pass": true,
+      "detail": "22 script requests so far"
+    },
+    {
+      "name": "URL becomes /quotes/{real numeric id}",
+      "pass": true,
+      "detail": "/quotes/57"
+    },
+    {
+      "name": "detail page renders the same text the real API returned for that id",
+      "pass": true,
+      "detail": "“Routing audit quote s6pxux”"
+    },
+    {
+      "name": "detail page renders the same author the real API returned for that id",
+      "pass": true,
+      "detail": "— Routing Audit Author"
+    },
+    {
+      "name": "quote-detail-page-* chunk WAS requested once the detail route was visited",
+      "pass": true,
+      "detail": "http://localhost:4216/@ng/component?c=app%2Fquotes%2Fquote-detail-page.component.ts%40QuoteDetailPageComponent&t=1787810975025"
+    },
+    {
+      "name": "document.startViewTransition called at least once during list -> detail nav",
+      "pass": true,
+      "detail": "calls=1"
+    },
+    {
+      "name": "logged-out visit to the same /quotes/:id redirects to /login",
+      "pass": true,
+      "detail": "/login"
+    }
+  ]
+}

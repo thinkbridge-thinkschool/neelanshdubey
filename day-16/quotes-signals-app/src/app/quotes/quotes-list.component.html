@@ -1,0 +1,39 @@
+<div class="quotes-shell">
+  <header class="list-header">
+    <h1>Quotes</h1>
+    <div class="list-header-links">
+      <a routerLink="/quotes/new" class="add-link">Add a quote</a>
+      <a routerLink="/search" class="back-link">Back to search</a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="state-message">
+      <p>Loading quotes…</p>
+    </div>
+  } @else if (error()) {
+    <div class="state-message">
+      <p>{{ error() }}</p>
+      <button type="button" class="retry-button" (click)="retry()">Try again</button>
+    </div>
+  } @else if (quotes().length === 0) {
+    <div class="state-message">
+      <p>No quotes found.</p>
+    </div>
+  } @else {
+    <ul class="quote-list">
+      @for (quote of quotes(); track quote.id) {
+        <li>
+          <a
+            [routerLink]="['/quotes', quote.id]"
+            class="quote-item"
+            [style.view-transition-name]="'quote-' + quote.id"
+          >
+            <p class="quote-item-text">&ldquo;{{ quote.text }}&rdquo;</p>
+            <p class="quote-item-author">— {{ quote.author }}</p>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+</div>

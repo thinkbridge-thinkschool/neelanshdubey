@@ -1,0 +1,29 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.detail-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.back-link {
+  display: inline-block;
+  color: var(--color-primary);
+  font-size: 13px;
+  text-decoration: none;
+  margin-bottom: 16px;
+
+  &:hover {
+    color: var(--color-primary-hover);
+  }
+}
+
+.state-message {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
