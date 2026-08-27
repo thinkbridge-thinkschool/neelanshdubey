@@ -1,0 +1,535 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  color: var(--color-text);
+  background:
+    linear-gradient(180deg, rgba(10, 12, 17, 0.55) 0%, rgba(10, 12, 17, 0.68) 100%),
+    url('/images/quotes-background.png') center center / cover no-repeat fixed;
+}
+
+.search-shell {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 16px;
+  background: rgba(23, 26, 34, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-right: 1px solid var(--color-border);
+}
+
+.user-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  // var(--color-primary) against white text is only 3.16:1, below WCAG
+  // AA's 4.5:1 minimum (caught by axe-core) — the "-strong" variant is a
+  // darker shade of the same hue meant for solid-fill + white-text.
+  background: var(--color-primary-strong);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  word-break: break-word;
+}
+
+.filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-item {
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  &.filter-item--active {
+    background: var(--color-primary-strong);
+    color: #ffffff;
+  }
+}
+
+
+.content {
+  padding: 28px clamp(20px, 4vw, 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.daily-banner {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: var(--radius-lg);
+  color: #f4f5f9;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(91, 140, 255, 0.4), transparent 55%),
+    radial-gradient(circle at 85% 80%, rgba(124, 92, 255, 0.32), transparent 55%),
+    linear-gradient(150deg, #11131c 0%, #191c28 100%);
+}
+
+/* Same "quote mark as illustration" motif as the login banner, echoed here
+   for a consistent aesthetic across the app's two hero banners. */
+.daily-mark-giant {
+  position: absolute;
+  top: -70px;
+  left: -20px;
+  font-family: Georgia, serif;
+  font-size: 220px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+  user-select: none;
+}
+
+.daily-text {
+  position: relative;
+  z-index: 1;
+}
+
+.daily-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.daily-quote {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.daily-author {
+  margin: 6px 0 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.daily-icon {
+  position: relative;
+  z-index: 1;
+  font-size: 40px;
+  font-weight: 700;
+  opacity: 0.3;
+  flex-shrink: 0;
+}
+
+.search-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  opacity: 0.5;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 11px 14px 11px 38px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+}
+
+.results-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.result-count {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.results-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logout-button,
+.add-button {
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+}
+
+.add-button {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  position: relative;
+  padding: 18px 36px 18px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  // Frosted glass over the background photo, rather than a fully opaque
+  // panel — this is what actually makes the image visible "behind" each
+  // quote instead of just in the narrow gaps between cards.
+  background: rgba(23, 26, 34, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform 180ms ease, border-color 180ms ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-primary);
+  }
+}
+
+.card--skeleton {
+  height: 110px;
+  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-bg) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+
+  &:hover {
+    transform: none;
+    border-color: var(--color-border);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.card-text {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-author {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.delete-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-danger);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.favorite-toggle {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--color-border);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+
+  &.favorite-toggle--active {
+    color: #f59e0b;
+  }
+}
+
+.state-message {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.retry-button {
+  margin-top: 12px;
+  padding: 8px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 860px) {
+  :host {
+    // "fixed" backgrounds are unreliable/janky on mobile browsers when the
+    // viewport resizes on scroll — fall back to scrolling with the page.
+    background-attachment: scroll;
+  }
+
+  .search-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .user-card {
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .filter-list {
+    flex-direction: row;
+  }
+}
+
+/* ---------- toast ---------- */
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  z-index: 20;
+}
+
+/* ---------- modal ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 29, 41, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 10;
+}
+
+.modal-panel {
+  width: min(440px, 100%);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  padding: clamp(24px, 5vw, 32px);
+}
+
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.modal-detail {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
+.modal-field input,
+.modal-field textarea {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.text-action {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--color-text);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.primary-button,
+.danger-button {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.primary-button {
+  // var(--color-primary) against white text is only 3.16:1, below WCAG
+  // AA's 4.5:1 minimum (caught by axe-core) — the "-strong" variant is a
+  // darker shade of the same hue meant for solid-fill + white-text.
+  background: var(--color-primary-strong);
+  color: #ffffff;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-strong-hover);
+  }
+}
+
+.danger-button {
+  // Same issue as .primary-button above: var(--color-danger) against
+  // white text is only 2.77:1.
+  background: var(--color-danger-strong);
+  color: #ffffff;
+}
+
+.form-errors {
+  margin: -8px 0 16px;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.modal-error {
+  margin: -8px 0 16px;
+  font-size: 12px;
+  color: var(--color-danger);
+}
