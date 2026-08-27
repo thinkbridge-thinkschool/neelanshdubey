@@ -1,0 +1,202 @@
+<div class="search-shell">
+  <aside class="sidebar">
+    <div class="user-card">
+      <span class="avatar" aria-hidden="true">{{ userInitials() }}</span>
+      <span class="user-email">{{ auth.email() }}</span>
+    </div>
+
+    <nav class="filter-list" aria-label="Quote filters">
+      @for (filter of filters; track filter.key) {
+        <button
+          type="button"
+          class="filter-item"
+          [class.filter-item--active]="activeFilter() === filter.key"
+          (click)="setFilter(filter.key)"
+        >
+          {{ filter.label }}
+        </button>
+      }
+    </nav>
+
+    <a routerLink="/quotes" class="filter-item">Browse all quotes</a>
+  </aside>
+
+  <main class="content">
+    @if (quoteOfTheDay(); as daily) {
+      <section class="daily-banner">
+        <span class="daily-mark-giant" aria-hidden="true">&ldquo;</span>
+        <div class="daily-text">
+          <span class="daily-label">Quote of the day</span>
+          <p class="daily-quote">&ldquo;{{ daily.text }}&rdquo;</p>
+          <p class="daily-author">— {{ daily.author }}</p>
+        </div>
+        <span class="daily-icon" aria-hidden="true">&#8221;</span>
+      </section>
+    }
+
+    <div class="search-row">
+      <span class="search-icon" aria-hidden="true">&#128269;</span>
+      <input
+        type="search"
+        class="search-input"
+        [formControl]="searchControl"
+        [placeholder]="activeFilter() === 'author' ? 'Search by author…' : 'Search quotes…'"
+        aria-label="Search quotes"
+      />
+    </div>
+
+    <div class="results-row">
+      <span class="result-count">{{ resultCount() }} {{ resultCount() === 1 ? 'quote' : 'quotes' }}</span>
+      <div class="results-actions">
+        <button type="button" class="add-button" (click)="openAddModal()">+ Add quote</button>
+        <button type="button" class="logout-button" (click)="logout()">Log out</button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="card-grid">
+        @for (i of skeletonCards; track i) {
+          <div class="card card--skeleton" aria-hidden="true"></div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="state-message">
+        <p>{{ error() }}</p>
+        <button type="button" class="retry-button" (click)="retry()">Try again</button>
+      </div>
+    } @else if (activeFilter() === 'tag') {
+      <div class="state-message">
+        <p>This collection doesn't have tags yet.</p>
+      </div>
+    } @else if (filteredQuotes().length === 0) {
+      <div class="state-message">
+        <p>No quotes found.</p>
+      </div>
+    } @else {
+      <div class="card-grid">
+        @for (quote of filteredQuotes(); track quote.id) {
+          <article class="card">
+            <button
+              type="button"
+              class="favorite-toggle"
+              [class.favorite-toggle--active]="favoriteIds().has(quote.id)"
+              [attr.aria-pressed]="favoriteIds().has(quote.id)"
+              aria-label="Toggle favorite"
+              (click)="toggleFavorite(quote.id, $event)"
+            >
+              ★
+            </button>
+            <p class="card-text">&ldquo;{{ quote.text }}&rdquo;</p>
+            <div class="card-footer">
+              <p class="card-author">— {{ quote.author }}</p>
+              @if (canDelete(quote)) {
+                <button
+                  type="button"
+                  class="delete-link"
+                  [disabled]="isDeleting(quote.id)"
+                  (click)="openDeleteConfirm(quote.id)"
+                >
+                  {{ isDeleting(quote.id) ? 'Removing…' : 'Delete' }}
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </main>
+
+  @if (toastMessage()) {
+    <div class="toast" role="status">{{ toastMessage() }}</div>
+  }
+
+  @if (isAddModalOpen()) {
+    <div class="modal-backdrop" (click)="closeAddModal()">
+      <div
+        class="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add quote"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="closeAddModal()"
+      >
+        <h2 class="modal-title">Add a quote</h2>
+
+        <form (submit)="onAddSubmit($event)">
+          <label class="modal-field">
+            Quote text
+            <textarea
+              rows="3"
+              [value]="newText()"
+              (input)="onNewTextInput($event)"
+              [disabled]="addSubmitting()"
+              placeholder="What did they say?"
+              autofocus
+            ></textarea>
+          </label>
+
+          <label class="modal-field">
+            Author
+            <input
+              type="text"
+              [value]="newAuthor()"
+              (input)="onNewAuthorInput($event)"
+              [disabled]="addSubmitting()"
+              placeholder="Name"
+            />
+          </label>
+
+          @if (addFormErrors().length > 0 && (newAuthor().length > 0 || newText().length > 0)) {
+            <ul class="form-errors">
+              @for (message of addFormErrors(); track message) {
+                <li>{{ message }}</li>
+              }
+            </ul>
+          }
+
+          @if (addError()) {
+            <p class="modal-error">{{ addError() }}</p>
+          }
+
+          <div class="modal-actions">
+            <button type="button" class="text-action" (click)="closeAddModal()" [disabled]="addSubmitting()">
+              Cancel
+            </button>
+            <button type="submit" class="primary-button" [disabled]="addSubmitting() || !isAddFormValid()">
+              {{ addSubmitting() ? 'Adding…' : 'Add quote' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (deleteConfirmQuote(); as target) {
+    <div class="modal-backdrop" (click)="cancelDeleteConfirm()">
+      <div
+        class="modal-panel"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="Remove this quote?"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="cancelDeleteConfirm()"
+      >
+        <h2 class="modal-title">Remove this quote?</h2>
+        <p class="modal-detail">&ldquo;{{ target.text }}&rdquo; — {{ target.author }}</p>
+
+        @if (deleteError()) {
+          <p class="modal-error">{{ deleteError() }}</p>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="text-action" (click)="cancelDeleteConfirm()" [disabled]="isDeleting(target.id)">
+            Cancel
+          </button>
+          <button type="button" class="danger-button" [disabled]="isDeleting(target.id)" (click)="confirmDelete()">
+            {{ isDeleting(target.id) ? 'Removing…' : 'Remove' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

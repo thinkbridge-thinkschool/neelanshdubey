@@ -1,0 +1,31 @@
+{
+  "runId": "i9meb9",
+  "testEmail": "a11y-audit-i9meb9@example.com",
+  "results": [
+    {
+      "state": "01-empty",
+      "violations": [],
+      "screenshot": "screenshots/01-empty.png"
+    },
+    {
+      "state": "02-invalid-focus-moved-to-author",
+      "violations": [],
+      "screenshot": "screenshots/02-invalid-focus-moved-to-author.png"
+    },
+    {
+      "state": "03-submitting",
+      "violations": [],
+      "screenshot": "screenshots/03-submitting.png"
+    },
+    {
+      "state": "04-success",
+      "violations": [],
+      "screenshot": "screenshots/04-success.png"
+    },
+    {
+      "state": "05-server-error-focus-moved-to-banner",
+      "violations": [],
+      "screenshot": "screenshots/05-server-error-focus-moved-to-banner.png"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+<div class="page-shell">
+  <header class="page-header">
+    <h1>Add a quote</h1>
+    <a routerLink="/quotes" class="back-link">Back to quotes</a>
+  </header>
+
+  @if (createdQuoteId()) {
+    <div class="success-banner" role="status">
+      <p>Quote added to the collection.</p>
+      <div class="success-actions">
+        <button type="button" class="secondary-button" (click)="createAnother()">Add another quote</button>
+        <a routerLink="/quotes" class="link-button">View quotes</a>
+      </div>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      @if (serverError(); as message) {
+        <p #errorBanner tabindex="-1" class="error-banner" role="alert">{{ message }}</p>
+      }
+
+      <div class="field">
+        <label for="author">Author</label>
+        <input
+          id="author"
+          #authorInput
+          type="text"
+          formControlName="author"
+          autocomplete="off"
+          [attr.aria-invalid]="isInvalid('author') ? true : null"
+          [attr.aria-describedby]="describedBy('author')"
+          [class.field-invalid]="isInvalid('author')"
+        />
+        <span id="author-hint" class="field-hint">
+          {{ form.controls.author.value.length }}/{{ authorMaxLength }} characters
+        </span>
+        @if (isInvalid('author')) {
+          <span id="author-error" class="field-error">{{ errorMessage('author') }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="text">Quote text</label>
+        <textarea
+          id="text"
+          #textInput
+          rows="5"
+          formControlName="text"
+          [attr.aria-invalid]="isInvalid('text') ? true : null"
+          [attr.aria-describedby]="describedBy('text')"
+          [class.field-invalid]="isInvalid('text')"
+        ></textarea>
+        <span id="text-hint" class="field-hint">
+          {{ form.controls.text.value.length }}/{{ textMaxLength }} characters
+        </span>
+        @if (isInvalid('text')) {
+          <span id="text-error" class="field-error">{{ errorMessage('text') }}</span>
+        }
+      </div>
+
+      <button type="submit" class="submit-button" [disabled]="submitting()" [attr.aria-busy]="submitting() ? true : null">
+        @if (submitting()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Adding…
+        } @else {
+          Add quote
+        }
+      </button>
+    </form>
+  }
+</div>
