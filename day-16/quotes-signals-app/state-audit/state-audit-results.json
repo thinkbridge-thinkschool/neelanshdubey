@@ -1,0 +1,46 @@
+{
+  "runId": "mspdfj",
+  "testEmail": "state-audit-mspdfj@example.com",
+  "checks": [
+    {
+      "name": "page 1 shows exactly PAGE_SIZE (10) real quotes",
+      "pass": true,
+      "detail": "got 10"
+    },
+    {
+      "name": "Previous is disabled on page 1",
+      "pass": true,
+      "detail": "disabled=true"
+    },
+    {
+      "name": "a real GET /api/quotes?page=2&size=10 request was observed",
+      "pass": true,
+      "detail": "http://localhost:4216/api/quotes?page=2&size=10"
+    },
+    {
+      "name": "page 2 shows the real remainder (short page)",
+      "pass": true,
+      "detail": "got 6, expected 6"
+    },
+    {
+      "name": "Next disables itself once the page comes back short",
+      "pass": true,
+      "detail": "disabled=true"
+    },
+    {
+      "name": "Previous returns to a full page 1",
+      "pass": true,
+      "detail": "got 10"
+    },
+    {
+      "name": "the later call (page 1) already won right after it resolved",
+      "pass": true,
+      "detail": "page()=1"
+    },
+    {
+      "name": "the stale, late-arriving page-2 response did not overwrite page 1 once it finally resolved",
+      "pass": true,
+      "detail": "{\"pageRightAfterFast\":1,\"pageAfterBothSettled\":1,\"quoteCount\":10}"
+    }
+  ]
+}
