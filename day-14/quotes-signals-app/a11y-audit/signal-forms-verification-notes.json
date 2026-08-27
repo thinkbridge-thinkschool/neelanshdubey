@@ -1,0 +1,79 @@
+{
+  "runId": "gl0xv0",
+  "testEmail": "signal-verify-gl0xv0@example.com",
+  "notes": [
+    {
+      "step": "Register a throwaway real user against the real API"
+    },
+    {
+      "step": "Seed the real session into localStorage (same shape AuthService writes)"
+    },
+    {
+      "step": "Navigate to /quotes/new-signal"
+    },
+    {
+      "state": "pristine",
+      "authorAriaInvalid": null,
+      "errorSpanPresent": false
+    },
+    {
+      "step": "Type into author, then clear it (dirty, not yet blurred elsewhere)"
+    },
+    {
+      "state": "dirty-still-focused",
+      "authorAriaInvalid": "true"
+    },
+    {
+      "step": "Blur away from the empty, dirty author field — required validator should now show"
+    },
+    {
+      "state": "touched-empty-author",
+      "errorText": "Author is required."
+    },
+    {
+      "step": "Type 201 characters into author — maxlength validator should fire"
+    },
+    {
+      "state": "author-over-maxlength",
+      "errorText": "Author must be 200 characters or fewer."
+    },
+    {
+      "step": "Fix author, leave text empty, submit via Enter — focus should move to #text"
+    },
+    {
+      "state": "submit-invalid",
+      "focusedId": "text"
+    },
+    {
+      "step": "Fill both fields, delay the real request, observe \"submitting\", then success"
+    },
+    {
+      "state": "submitting",
+      "buttonDisabled": true
+    },
+    {
+      "state": "success",
+      "bannerText": "Quote added to the collection."
+    },
+    {
+      "step": "Click \"Add another quote\" — form should reset and author should refocus"
+    },
+    {
+      "state": "create-another",
+      "authorValue": "",
+      "focusedId": "author"
+    },
+    {
+      "step": "Corrupt the stored token to provoke a real 401, then re-submit"
+    },
+    {
+      "state": "server-error",
+      "status": 401,
+      "bannerText": "You are not authorized to do that.",
+      "focusedClass": "error-banner"
+    },
+    {
+      "step": "Clean up: delete quotes created during this run via the real API"
+    }
+  ]
+}
