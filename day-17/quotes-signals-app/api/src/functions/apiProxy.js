@@ -114,6 +114,14 @@ async function handle(request, context) {
     const upstream = await fetch(targetUrl, init);
     const body = await upstream.text();
 
+    // A 204 (e.g. the real DELETE /api/quotes/{id} endpoint) or 304 must not
+    // carry a body per HTTP semantics — Azure Functions' response layer
+    // throws if one is set anyway, turning a real, successful delete into a
+    // 500 here even though the delete itself already happened upstream.
+    if (upstream.status === 204 || upstream.status === 304) {
+      return { status: upstream.status };
+    }
+
     return {
       status: upstream.status,
       headers: { 'content-type': upstream.headers.get('content-type') ?? 'application/json' },
