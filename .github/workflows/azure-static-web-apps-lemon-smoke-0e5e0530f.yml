@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: false
           lfs: false
       - name: Build And Deploy
         id: builddeploy
@@ -29,7 +29,10 @@ jobs:
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "day-17/quotes-signals-app" # App source code path
-          api_location: "day-17/quotes-signals-app/api" # Api source code path - optional
+          # api_location intentionally omitted: the API proxy is a standalone
+          # Azure Function App instead (see api/README.md) — Static Web Apps'
+          # Free tier can't assign a managed identity to its own co-located
+          # Functions API, but a Consumption-plan Function App can, for free.
           output_location: "dist/quotes-signals-app/browser" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
 

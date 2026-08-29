@@ -26,12 +26,49 @@ function isAnonymousReadPath(method, segments) {
   return method === 'GET' && /^quotes(\/|$)/.test(segments);
 }
 
+/** Base64url JWT payload decode — no library needed, never touches the signature. */
+function decodeJwtPayload(jwt) {
+  const payload = jwt.split('.')[1];
+  const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+  return JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
+}
+
 app.http('apiProxy', {
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   authLevel: 'anonymous',
   route: '{*segments}',
   handler: async (request, context) => {
     const segments = request.params.segments ?? '';
+
+    // Verification-only endpoint for the Day-17 deployment task: proves the
+    // read path really does carry a managed-identity-issued Azure AD token,
+    // not a static secret. Handled here (not as a separate app.http()
+    // registration) because Azure Functions' route matching does not give
+    // literal routes precedence over this file's own '{*segments}' catch-all
+    // — a second function at 'route: "_debug/entra-token"' was silently
+    // shadowed by this one and never invoked.
+    if (segments === '_debug/entra-token' && request.method === 'GET') {
+      try {
+        const token = await credential.getToken(ENTRA_API_SCOPE);
+        const claims = decodeJwtPayload(token.token);
+        return {
+          status: 200,
+          jsonBody: {
+            note: 'Decoded claims only — the raw token is never returned or logged.',
+            iss: claims.iss,
+            aud: claims.aud,
+            appid: claims.appid ?? claims.azp ?? null,
+            oid: claims.oid ?? null,
+            exp: claims.exp,
+            tokenExpiresOn: token.expiresOnTimestamp ? new Date(token.expiresOnTimestamp).toISOString() : null,
+          },
+        };
+      } catch (err) {
+        context.error('Failed to acquire managed-identity token for verification', err);
+        return { status: 500, jsonBody: { error: 'Could not acquire a managed-identity token.' } };
+      }
+    }
+
     const targetUrl = `${API_BASE}/${segments}${request.query.size > 0 ? `?${request.query}` : ''}`;
 
     const headers = new Headers();
