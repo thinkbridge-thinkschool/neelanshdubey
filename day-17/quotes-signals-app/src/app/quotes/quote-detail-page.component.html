@@ -1,0 +1,11 @@
+<div class="detail-page" [style.view-transition-name]="'quote-' + id()">
+  <a routerLink="/quotes" class="back-link">← Back to quotes</a>
+
+  @if (quoteId() === null) {
+    <div class="state-message">
+      <p>"{{ id() }}" is not a valid quote id.</p>
+    </div>
+  } @else {
+    <app-quote-detail [quoteId]="quoteId()" />
+  }
+</div>

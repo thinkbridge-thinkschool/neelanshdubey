@@ -1,0 +1,51 @@
+<div class="quotes-shell">
+  <header class="list-header">
+    <h1>Quotes</h1>
+    <div class="list-header-links">
+      <a routerLink="/quotes/new" class="add-link">Add a quote</a>
+      <a routerLink="/search" class="back-link">Back to search</a>
+    </div>
+  </header>
+
+  @if (state.loading() && state.quotes().length === 0) {
+    <div class="state-message">
+      <p>Loading quotes…</p>
+    </div>
+  } @else if (state.error()) {
+    <div class="state-message">
+      <p>{{ state.error() }}</p>
+      <button type="button" class="retry-button" (click)="state.retry()">Try again</button>
+    </div>
+  } @else if (state.quotes().length === 0) {
+    <div class="state-message">
+      <p>No quotes found.</p>
+    </div>
+  } @else {
+    <ul class="quote-list" [class.quote-list--loading]="state.loading()">
+      @for (quote of state.quotes(); track quote.id) {
+        <li>
+          <a
+            [routerLink]="['/quotes', quote.id]"
+            class="quote-item"
+            [style.view-transition-name]="'quote-' + quote.id"
+          >
+            <p class="quote-item-text">&ldquo;{{ quote.text }}&rdquo;</p>
+            <p class="quote-item-author">— {{ quote.author }}</p>
+          </a>
+        </li>
+      }
+    </ul>
+
+    <nav class="pager" aria-label="Quotes pages">
+      <button type="button" (click)="state.prev()" [disabled]="!state.hasPrevPage() || state.loading()">
+        ← Previous
+      </button>
+      <span class="pager-status" aria-live="polite">
+        Page {{ state.page() }}{{ state.loading() ? ' — loading…' : '' }}
+      </span>
+      <button type="button" (click)="state.next()" [disabled]="!state.hasNextPage() || state.loading()">
+        Next →
+      </button>
+    </nav>
+  }
+</div>
