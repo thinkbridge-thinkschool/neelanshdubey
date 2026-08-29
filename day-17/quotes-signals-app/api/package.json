@@ -1,0 +1,16 @@
+{
+  "name": "quotes-swa-api",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.7.2",
+    "@azure/identity": "^4.13.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

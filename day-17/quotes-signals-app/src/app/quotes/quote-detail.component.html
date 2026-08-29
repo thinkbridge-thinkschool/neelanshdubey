@@ -1,0 +1,26 @@
+@if (quoteId() === null) {
+  <div class="state-message">
+    <p>Select a quote to see its details.</p>
+  </div>
+} @else if (loading()) {
+  <div class="state-message">
+    <p>Loading…</p>
+  </div>
+} @else if (error()) {
+  <div class="state-message">
+    <p>{{ error() }}</p>
+  </div>
+} @else if (detail(); as quote) {
+  <article class="detail-card">
+    <p class="detail-text">&ldquo;{{ quote.text }}&rdquo;</p>
+    <p class="detail-author">— {{ quote.author }}</p>
+    <dl class="detail-meta">
+      <dt>Id</dt>
+      <dd>{{ quote.id }}</dd>
+      <dt>Owner id</dt>
+      <dd>{{ quote.ownerId }}</dd>
+      <dt>Created</dt>
+      <dd>{{ quote.createdAt }}</dd>
+    </dl>
+  </article>
+}
