@@ -38,6 +38,16 @@ app.http('apiProxy', {
   authLevel: 'anonymous',
   route: '{*segments}',
   handler: async (request, context) => {
+    try {
+      return await handle(request, context);
+    } catch (err) {
+      context.error('apiProxy uncaught error', err);
+      return { status: 500, jsonBody: { error: err?.message ?? String(err), stack: err?.stack ?? null } };
+    }
+  },
+});
+
+async function handle(request, context) {
     const segments = request.params.segments ?? '';
 
     // Verification-only endpoint for the Day-17 deployment task: proves the
@@ -109,5 +119,4 @@ app.http('apiProxy', {
       headers: { 'content-type': upstream.headers.get('content-type') ?? 'application/json' },
       body,
     };
-  },
-});
+}

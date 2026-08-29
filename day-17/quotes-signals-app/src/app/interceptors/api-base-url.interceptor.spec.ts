@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { apiBaseUrlInterceptor } from './api-base-url.interceptor';
 
-const DEPLOYED_ORIGIN = 'https://ai-quotes-func.azurewebsites.net';
+const DEPLOYED_ORIGIN = 'https://ai-quotes-func2.azurewebsites.net';
 
 function setHostname(hostname: string): void {
   Object.defineProperty(window, 'location', {

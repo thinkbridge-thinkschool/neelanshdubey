@@ -1,6 +1,6 @@
 # Managed-identity API proxy
 
-Standalone Azure Function App (`ai-quotes-func`, resource group `ai-quotes-api`,
+Standalone Azure Function App (`ai-quotes-func2`, resource group `ai-quotes-api`,
 Windows Consumption plan — Linux Consumption 503'd persistently on this
 subscription, a platform-level restriction, not a config issue; Windows came
 up on the first request) — **not** deployed as this Static Web App's own
@@ -43,7 +43,7 @@ rotate, nothing to leak.
 ## Why the browser needs an absolute URL for this, not a relative `/api/*`
 
 This Function App is a **separate origin** from the Static Web App
-(`ai-quotes-func.azurewebsites.net` vs `*.azurestaticapps.net`) — unlike SWA's
+(`ai-quotes-func2.azurewebsites.net` vs `*.azurestaticapps.net`) — unlike SWA's
 own managed/linked Functions feature, a standalone Function App isn't
 automatically reachable at the SWA's own `/api/*` path. See
 `src/app/interceptors/api-base-url.interceptor.ts`: it rewrites `/api/*`
