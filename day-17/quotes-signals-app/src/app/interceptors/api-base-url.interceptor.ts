@@ -9,7 +9,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 // the real Week-1 API with a real managed-identity token attached server
 // side. Runtime-checked (not a build-time environment file) so the exact
 // same build artifact works unmodified in both places.
-const DEPLOYED_API_ORIGIN = 'https://ai-quotes-func2.azurewebsites.net';
+const DEPLOYED_API_ORIGIN = 'https://ai-quotes-func3.azurewebsites.net';
 
 export const apiBaseUrlInterceptor: HttpInterceptorFn = (req, next) => {
   if (typeof location !== 'undefined' && location.hostname !== 'localhost' && req.url.startsWith('/api/')) {
